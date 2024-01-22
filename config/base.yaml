@@ -1,0 +1,8 @@
+service:
+  port: 80
+database:
+  host: ""
+  port: 3306
+  name: ""
+  username: ""
+  password: ""

@@ -1,0 +1,85 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: local-dev
+build:
+  artifacts:
+    - image: spinus
+      context: .
+      docker:
+        dockerfile: Dockerfile
+  local:
+    push: false
+    useBuildkit: true
+deploy:
+  helm:
+    releases:
+      - name: spinus-local-dev
+        chartPath: helm
+        valuesFiles:
+          - siteconfig/local-dev.yaml
+        namespace: spinus-local-dev
+        setValueTemplates:
+          image.repository: "{{.IMAGE_REPO_spinus}}"
+          image.tag: "{{.IMAGE_TAG_spinus}}@{{.IMAGE_DIGEST_spinus}}"
+  kubeContext: local-dev
+profiles:
+  - name: local-dev
+    activation:
+      - kubeContext: local-dev
+    build:
+      tagPolicy:
+        sha256: {}
+    portForward:
+      - resourceType: service
+        resourceName: spinus-local-dev
+        namespace: spinus-local-dev
+        port: 80
+        localPort: 8213
+  - name: nocache
+    patches:
+      - op: add
+        path: /build/artifacts/0/docker/noCache
+        value: true
+  - name: build-push
+    patches:
+      - op: add
+        path: /build/tagPolicy
+        value:
+          envTemplate:
+            template: "{{.APPVERSION}}"
+      - op: replace
+        path: /build/local/push
+        value: true
+  - name: any-kube-context
+    patches:
+      - op: remove
+        path: /deploy/kubeContext
+  - name: deploy
+    patches:
+      - op: replace
+        path: /deploy/helm/releases/0/name
+        value: "{{.SITE}}"
+      - op: replace
+        path: /deploy/helm/releases/0/valuesFiles
+        value:
+          - "{{.SITECONFIG}}"
+      - op: replace
+        path: /deploy/helm/releases/0/namespace
+        value: "{{.SITE}}"
+      - op: add
+        path: /deploy/helm/releases/0/upgradeOnChange
+        value: true
+      - op: add
+        path: /deploy/helm/releases/0/packaged
+        value:
+          version: "{{.CHART_VERSION}}"
+          appVersion: "{{.APPVERSION}}"
+  - name: create-namespace
+    activation:
+      - kubeContext: "!(.*prod.*)"
+    patches:
+      - op: add
+        path: /deploy/helm/releases/0/createNamespace
+        value: true
+

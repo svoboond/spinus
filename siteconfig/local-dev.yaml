@@ -1,0 +1,9 @@
+ingress:
+  enabled: true
+
+database:
+  host: "mysql.mysql-local-dev"
+  port: "3306"
+  name: "spinusdb"
+  username: "spinusu"
+  password: "spinuspw"
