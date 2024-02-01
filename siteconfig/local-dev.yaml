@@ -2,8 +2,8 @@ ingress:
   enabled: true
 
 database:
-  host: "mysql.mysql-local-dev"
-  port: "3306"
+  host: "postgres-postgresql.postgres-local-dev"
+  port: "5432"
   name: "spinusdb"
   username: "spinusu"
   password: "spinuspw"

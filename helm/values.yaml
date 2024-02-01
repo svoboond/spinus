@@ -48,3 +48,6 @@ database:
   name: ""
   username: ""
   password: ""
+
+log:
+  level: "info"

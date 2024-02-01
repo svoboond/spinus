@@ -8,7 +8,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . ./
 
-RUN go build -o spinus
+RUN go build -o spinus ./cmd/server
 
 FROM scratch
 WORKDIR /app

@@ -6,3 +6,6 @@ database:
   name: ""
   username: ""
   password: ""
+log:
+  level: "info"
+  handler: "text"

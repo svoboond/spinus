@@ -1,4 +1,7 @@
-.PHONY: build-nocache clean helm-dependency-update helm-lint hosts mrproper namespace run up
+.PHONY: browser build-nocache clean helm-dependency-update helm-lint hosts mrproper namespace run up
+
+browser:
+	xdg-open http://127.0.0.1:8213
 
 build-nocache:
 	skaffold build -p build-nocache
