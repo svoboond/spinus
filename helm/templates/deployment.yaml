@@ -19,9 +19,9 @@ spec:
     spec:
       initContainers:
         - name: wait-for-db
-          image: busybox
+          image: postgres:alpine
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ['sh', '-c', 'until nc -z -w 2 {{ .Values.database.host }} {{ .Values.database.port }} && echo mysql DB ok; do sleep 2; done;']
+          command: ['sh', '-c', 'until pg_isready --host {{ .Values.database.host }} --port {{ .Values.database.port }} --dbname {{ .Values.database.name }} --username {{.Values.database.username }}; do sleep 2; done;']
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"

@@ -1,0 +1,5 @@
+CREATE TABLE main_meter (
+  id BIGSERIAL PRIMARY KEY,
+  no BIGINT NOT NULL,
+  address TEXT NOT NULL
+);

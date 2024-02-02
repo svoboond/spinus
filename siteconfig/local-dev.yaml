@@ -3,7 +3,11 @@ ingress:
 
 database:
   host: "postgres-postgresql.postgres-local-dev"
-  port: "5432"
+  port: 5432
   name: "spinusdb"
   username: "spinusu"
   password: "spinuspw"
+
+log:
+  level: "debug"
+  handler: "text"

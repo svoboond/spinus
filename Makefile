@@ -1,4 +1,4 @@
-.PHONY: browser build-nocache clean helm-dependency-update helm-lint hosts mrproper namespace run up
+.PHONY: browser build-nocache clean helm-dependency-update helm-lint hosts mrproper namespace run sqlc-generate up
 
 browser:
 	xdg-open http://127.0.0.1:8213
@@ -26,6 +26,9 @@ namespace:
 
 run: helm-dependency-update
 	skaffold run --tail
+
+sqlc-generate:
+	docker run -v ./sqlc.yaml:/app/sqlc.yaml -v ./internal/db:/app/internal/db `docker build -q tools/sqlc/`
 
 up: helm-dependency-update
 	skaffold dev

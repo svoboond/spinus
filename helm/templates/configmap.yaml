@@ -10,7 +10,10 @@ data:
       {{ if .Values.service.port -}}
       port: {{ .Values.service.port }}
       {{- end }}
-    db:
+    database:
+      {{ if .Values.database.scheme -}}
+      scheme: {{ .Values.database.scheme }}
+      {{- end }}
       {{ if .Values.database.host -}}
       host: {{ .Values.database.host }}
       {{- end }}
@@ -25,4 +28,11 @@ data:
       {{- end }}
       {{ if .Values.database.password -}}
       password: {{ .Values.database.password }}
+      {{- end }}
+    log:
+      {{ if .Values.log.level -}}
+      level: {{ .Values.log.level }}
+      {{- end }}
+      {{ if .Values.log.handler -}}
+      handler: {{ .Values.log.handler }}
       {{- end }}

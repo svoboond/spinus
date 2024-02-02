@@ -8,15 +8,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
+	db "github.com/svoboond/spinus/internal/db/sqlc"
 	"github.com/svoboond/spinus/internal/tmpl"
 )
 
 type Server struct {
 	server    *http.Server
 	templates tmpl.Template
+	queries   *db.Queries
 }
 
-func New(listenAddr string, templates tmpl.Template, staticFS embed.FS) (*Server, error) {
+func New(
+	listenAddr string, templates tmpl.Template, staticFS embed.FS, queries *db.Queries,
+) (*Server, error) {
 	server := &http.Server{
 		Addr:              listenAddr,
 		ReadTimeout:       5 * time.Second,
@@ -31,6 +35,7 @@ func New(listenAddr string, templates tmpl.Template, staticFS embed.FS) (*Server
 	app := &Server{
 		server:    server,
 		templates: templates,
+		queries:   queries,
 	}
 
 	// middlewares

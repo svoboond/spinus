@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -12,7 +13,9 @@ import (
 
 	"log/slog"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/svoboond/spinus/internal/conf"
+	db "github.com/svoboond/spinus/internal/db/sqlc"
 	"github.com/svoboond/spinus/internal/server"
 	"github.com/svoboond/spinus/internal/tmpl"
 	"github.com/svoboond/spinus/ui"
@@ -73,9 +76,25 @@ func run() error {
 		return fmt.Errorf("could not create templates: %w", err)
 	}
 
+	slog.Debug("connecting to database...")
+	ctx := context.Background()
+	dbUrl := url.URL{
+		Scheme: config.Database.Scheme,
+		Host:   fmt.Sprintf("%s:%d", config.Database.Host, config.Database.Port),
+		User:   url.UserPassword(config.Database.Username, config.Database.Password),
+		Path:   config.Database.Name,
+	}
+	dbConn, err := pgx.Connect(ctx, dbUrl.String())
+	if err != nil {
+		return fmt.Errorf("could not connect to database: %w", err)
+	}
+	defer dbConn.Close(ctx)
+	dbQueries := db.New(dbConn)
+
 	slog.Debug("setting up server...")
 	serverListenAddr := fmt.Sprintf(":%d", serverListenPort)
-	appServer, err := server.New(serverListenAddr, templates, ui.EmbeddedContentStatic)
+	appServer, err := server.New(
+		serverListenAddr, templates, ui.EmbeddedContentStatic, dbQueries)
 	if err != nil {
 		return fmt.Errorf("could not create server: %w", err)
 	}

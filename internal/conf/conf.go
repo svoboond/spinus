@@ -17,6 +17,7 @@ type conf struct {
 		Port uint16 `yaml:"port"`
 	} `yaml:"service"`
 	Database struct {
+		Scheme   string `yaml:"scheme"`
 		Host     string `yaml:"host"`
 		Port     uint16 `yaml:"port"`
 		Name     string `yaml:"name"`

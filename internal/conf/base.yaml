@@ -1,11 +1,14 @@
 service:
   port: 80
+
 database:
+  scheme: "postgres"
   host: ""
   port: 3306
   name: ""
   username: ""
   password: ""
+
 log:
   level: "info"
   handler: "text"
