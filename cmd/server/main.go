@@ -58,7 +58,7 @@ func setupLogger(level, handler string) {
 	slog.SetDefault(slog.New(slogHandler))
 }
 
-func migrateDb(pool *pgxpool.Pool) error {
+func migrateDatabase(pool *pgxpool.Pool) error {
 	goose.SetBaseFS(db.EmbeddedContentMigration)
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("could not set goose dialect: %w", err)
@@ -108,7 +108,7 @@ func run() error {
 	}
 	defer dbPool.Close()
 
-	if err := migrateDb(dbPool); err != nil {
+	if err := migrateDatabase(dbPool); err != nil {
 		return fmt.Errorf("could not migrate database: %w", err)
 	}
 
