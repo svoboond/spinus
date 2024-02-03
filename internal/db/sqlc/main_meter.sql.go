@@ -3,7 +3,7 @@
 //   sqlc v1.25.0
 // source: main_meter.sql
 
-package db
+package spinusdb
 
 import (
 	"context"

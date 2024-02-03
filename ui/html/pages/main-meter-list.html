@@ -1,0 +1,21 @@
+{{ define "mainMeterList" }}
+{{ template "upper" }}
+<main>
+	<h1>Main Meter List</h1>
+	<table>
+		<tr>
+			<th>ID</th>
+			<th>Number</th>
+			<th>Address</th>
+		</tr>
+		{{ range . }}
+		<tr>
+			<td>{{ .ID }}</th>
+			<td>{{ .No }}</th>
+			<td>{{ .Address }}</th>
+		</tr>
+		{{ end }}
+	</table>
+</main>
+{{ template "lower" }}
+{{ end }}

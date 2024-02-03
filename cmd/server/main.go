@@ -13,9 +13,12 @@ import (
 
 	"log/slog"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"github.com/svoboond/spinus/internal/conf"
-	db "github.com/svoboond/spinus/internal/db/sqlc"
+	"github.com/svoboond/spinus/internal/db"
+	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
 	"github.com/svoboond/spinus/internal/server"
 	"github.com/svoboond/spinus/internal/tmpl"
 	"github.com/svoboond/spinus/ui"
@@ -55,6 +58,21 @@ func setupLogger(level, handler string) {
 	slog.SetDefault(slog.New(slogHandler))
 }
 
+func migrateDb(pool *pgxpool.Pool) error {
+	goose.SetBaseFS(db.EmbeddedContentMigration)
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("could not set goose dialect: %w", err)
+	}
+	handle := stdlib.OpenDBFromPool(pool)
+	if err := goose.Up(handle, "migration"); err != nil {
+		return fmt.Errorf("could not execute database migration: %w", err)
+	}
+	if err := handle.Close(); err != nil {
+		return fmt.Errorf("could not close database: %w", err)
+	}
+	return nil
+}
+
 func run() error {
 	slog.Debug("configuring...")
 	localConfPath := flag.String("config", "", "configuration file path")
@@ -84,12 +102,17 @@ func run() error {
 		User:   url.UserPassword(config.Database.Username, config.Database.Password),
 		Path:   config.Database.Name,
 	}
-	dbConn, err := pgx.Connect(ctx, dbUrl.String())
+	dbPool, err := pgxpool.New(ctx, dbUrl.String())
 	if err != nil {
 		return fmt.Errorf("could not connect to database: %w", err)
 	}
-	defer dbConn.Close(ctx)
-	dbQueries := db.New(dbConn)
+	defer dbPool.Close()
+
+	if err := migrateDb(dbPool); err != nil {
+		return fmt.Errorf("could not migrate database: %w", err)
+	}
+
+	dbQueries := spinusdb.New(dbPool)
 
 	slog.Debug("setting up server...")
 	serverListenAddr := fmt.Sprintf(":%d", serverListenPort)

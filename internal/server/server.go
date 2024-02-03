@@ -53,6 +53,8 @@ func New(
 
 	router.Get("/hello", app.HandleHelloGet)
 
+	router.Get("/main-meter-list", app.HandleGetMainMeterList)
+
 	return app, nil
 }
 

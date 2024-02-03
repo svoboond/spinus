@@ -13,3 +13,19 @@ func (s *Server) HandleHelloGet(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 }
+
+func (s *Server) HandleGetMainMeterList(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mainMeterList"
+
+	mainMeters, err := s.queries.ListMainMeters(r.Context())
+	if err != nil {
+		slog.Error("HandleGetMainMeterList select", "err", err)
+		return
+	}
+
+	if err := s.templates.Render(w, tmplName, mainMeters); err != nil {
+		slog.Error(
+			"HandleGetMainMeterList template render", "template", tmplName, "err", err)
+		return
+	}
+}
