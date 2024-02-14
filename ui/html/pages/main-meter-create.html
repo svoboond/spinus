@@ -1,0 +1,26 @@
+{{ define "mainMeterCreate" }}
+{{ template "upper" }}
+<main>
+	<h1>Main Meter Create</h1>
+	{{ with .Errors.General }}
+	<span>Error: {{ . }}</span>
+	{{ end }}
+	<form method="post">
+		<label for="number">Number (Required)</label>
+		<input type="number" name="number" min="1000" pattern="[0-9.]+"
+			required {{ with .No }} value="{{ . }}" {{ end }}>
+		{{ with .Errors.No }}
+		<label for="number">{{ . }}</label>
+		{{ end }}
+		<label for="number">Address (Required)</label>
+		<input type="text" name="address" minlength="8" required
+			{{ with .Address }} value="{{ . }}" {{ end }}>
+		{{ with .Errors.Address }}
+		<label for="number">{{ . }}</label>
+		{{ end }}
+		<input type="submit" value="Create">
+	</form>
+	<article>
+</main>
+{{ template "lower" }}
+{{ end }}
