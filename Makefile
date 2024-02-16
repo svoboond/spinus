@@ -1,7 +1,7 @@
 .PHONY: browser build-nocache clean helm-dependency-update helm-lint hosts mrproper namespace run sqlc-generate up
 
 browser:
-	xdg-open http://127.0.0.1:8213
+	xdg-open http://spinus.local
 
 build-nocache:
 	skaffold build -p build-nocache
