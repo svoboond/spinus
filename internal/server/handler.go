@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -20,6 +19,8 @@ func (s *Server) HandleHelloGet(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) HandleGetMainMeterList(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mainMeterList"
+	mmid := s.sessionManager.GetInt64(r.Context(), "mmid")
+	slog.Debug("session", "createdMainMeterId", mmid)
 
 	mainMeters, err := s.queries.ListMainMeters(r.Context())
 	if err != nil {
@@ -107,7 +108,7 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 		slog.Error("HandlePostMainMeterCreate query", "err", err)
 		return
 	}
-	fmt.Println("hello", mainMeter.ID)
+	s.sessionManager.Put(r.Context(), "mmid", mainMeter.ID)
 
 	http.Redirect(w, r, "/main-meter-list", http.StatusSeeOther)
 }

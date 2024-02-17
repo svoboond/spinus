@@ -18,10 +18,14 @@ spec:
         {{- include "chart.selectorLabels" . | nindent 8 }}
     spec:
       initContainers:
-        - name: wait-for-db
+        - name: wait-for-postgres
           image: postgres:alpine
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ['sh', '-c', 'until pg_isready --host {{ .Values.database.host }} --port {{ .Values.database.port }} --dbname {{ .Values.database.name }} --username {{.Values.database.username }}; do sleep 2; done;']
+          command: ['sh', '-c', 'until pg_isready --host {{ .Values.postgres.host }} --port {{ .Values.postgres.port }} --dbname {{ .Values.postgres.name }} --username {{.Values.postgres.username }}; do sleep 2; done;']
+        - name: wait-for-redis
+          image: redis:alpine
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ['sh', '-c', 'until [ "x`redis-cli --no-auth-warning -u {{ .Values.redis.url }} ping`" = "xPONG" ]; do sleep 2; done;']
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"

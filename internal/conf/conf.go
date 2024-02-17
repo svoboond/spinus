@@ -12,27 +12,29 @@ import (
 //go:embed base.yaml
 var baseData []byte
 
-type conf struct {
+type Conf struct {
 	Service struct {
 		Port uint16 `yaml:"port"`
 	} `yaml:"service"`
-	Database struct {
-		Scheme   string `yaml:"scheme"`
+	Postgres struct {
 		Host     string `yaml:"host"`
 		Port     uint16 `yaml:"port"`
 		Name     string `yaml:"name"`
 		Username string `yaml:"username"`
 		Password string `yaml:"password"`
-	} `yaml:"database"`
+	} `yaml:"postgres"`
+	Redis struct {
+		Url string `yaml:"url"`
+	} `yaml:"redis"`
 	Log struct {
 		Level   string `yaml:"level"`
 		Handler string `yaml:"handler"`
 	} `yaml:"log"`
 }
 
-func New(localPath string) (*conf, error) {
+func New(localPath string) (*Conf, error) {
 	if localPath == "" {
-		c := &conf{}
+		c := &Conf{}
 		if err := yaml.Unmarshal(baseData, c); err != nil {
 			return nil, fmt.Errorf("error unmarshalling base config: %w", err)
 		}
@@ -59,7 +61,7 @@ func New(localPath string) (*conf, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling merged config: %w", err)
 	}
-	c := &conf{}
+	c := &Conf{}
 	err = yaml.Unmarshal(encoded, c)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling merged config: %w", err)

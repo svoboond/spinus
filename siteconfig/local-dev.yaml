@@ -1,12 +1,15 @@
 ingress:
   enabled: true
 
-database:
+postgres:
   host: "postgres-postgresql.postgres-local-dev"
   port: 5432
   name: "spinusdb"
   username: "spinusu"
   password: "spinuspw"
+
+redis:
+  url: "redis://redis-master.redis-local-dev.svc.cluster.local:6379/3"
 
 log:
   level: "debug"

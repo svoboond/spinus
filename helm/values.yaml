@@ -42,13 +42,15 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-database:
-  scheme: "postgres"
+postgres:
   host: ""
   port: 3306
   name: ""
   username: ""
   password: ""
+
+redis:
+  url: ""
 
 log:
   level: "info"
