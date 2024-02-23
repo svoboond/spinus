@@ -7,7 +7,15 @@ package spinusdb
 import ()
 
 type MainMeter struct {
-	ID      int64
-	No      int64
+	ID      int32
+	MeterID string
 	Address string
+	FkUser  int32
+}
+
+type SpinusUser struct {
+	ID       int32
+	Username string
+	Email    string
+	Password string
 }

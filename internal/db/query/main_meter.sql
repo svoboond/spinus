@@ -4,20 +4,21 @@ WHERE id = $1 LIMIT 1;
 
 -- name: ListMainMeters :many
 SELECT * FROM main_meter
-ORDER BY no;
+ORDER BY meter_id;
 
 -- name: CreateMainMeter :one
 INSERT INTO main_meter (
-  no, address
+  meter_id, address, fk_user
 ) VALUES (
-  $1, $2
+  $1, $2, $3
 )
 RETURNING *;
 
 -- name: UpdateMainMeter :exec
-UPDATE main_meter
-  set no = $2,
-  address = $3
+UPDATE main_meter set
+  meter_id = $2,
+  address = $3,
+  fk_user = $4
 WHERE id = $1;
 
 -- name: DeleteMainMeter :exec

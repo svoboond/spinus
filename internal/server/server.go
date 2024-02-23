@@ -69,6 +69,7 @@ func New(config *conf.Conf) (*Server, error) {
 	sessionManager := scs.New()
 	sessionManager.Store = goredisstore.New(redisClient)
 
+	// TODO - make timeout configurable
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", config.Service.Port),
 		ReadTimeout:       5 * time.Second,
@@ -95,7 +96,10 @@ func New(config *conf.Conf) (*Server, error) {
 	router.Use(chi_middleware.Logger)
 	router.Use(chi_middleware.RequestID)
 	router.Use(sessionManager.LoadAndSave)
+	// TODO - make level configurable
 	router.Use(chi_middleware.Compress(5, "text/*", "application/*"))
+
+	router.NotFound(app.HandleNotFound)
 
 	// handlers
 	router.Handle("/static/*", WithCacheControl(
@@ -103,11 +107,18 @@ func New(config *conf.Conf) (*Server, error) {
 		31536000, // 1 year cache. We change file names if we update static files.
 	))
 
-	router.Get("/hello", app.HandleHelloGet)
+	router.Get("/signup", app.HandleGetSignUp)
+	router.Post("/signup", app.HandlePostSignUp)
+	router.Get("/login", app.HandleGetLogIn)
+	router.Post("/login", app.HandlePostLogIn)
 
-	router.Get("/main-meter-list", app.HandleGetMainMeterList)
-	router.Get("/main-meter-create", app.HandleGetMainMeterCreate)
-	router.Post("/main-meter-create", app.HandlePostMainMeterCreate)
+	router.Group(func(loggedInRouter chi.Router) {
+		loggedInRouter.Use(router.Middlewares()...)
+		loggedInRouter.Use(app.RequireLogin)
+		loggedInRouter.Get("/main-meter-list", app.HandleGetMainMeterList)
+		loggedInRouter.Get("/main-meter-create", app.HandleGetMainMeterCreate)
+		loggedInRouter.Post("/main-meter-create", app.HandlePostMainMeterCreate)
+	})
 
 	return app, nil
 }

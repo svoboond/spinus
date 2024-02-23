@@ -5,13 +5,13 @@
 	<table>
 		<tr>
 			<th>ID</th>
-			<th>Number</th>
+			<th>Meter Identification</th>
 			<th>Address</th>
 		</tr>
 		{{ range . }}
 		<tr>
 			<td>{{ .ID }}</th>
-			<td>{{ .No }}</th>
+			<td>{{ .MeterID }}</th>
 			<td>{{ .Address }}</th>
 		</tr>
 		{{ end }}

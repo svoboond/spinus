@@ -2,15 +2,15 @@
 {{ template "upper" }}
 <main>
 	<h1>Main Meter Create</h1>
-	{{ with .Errors.General }}
-	<span>Error: {{ . }}</span>
-	{{ end }}
 	<form method="post">
-		<label for="number">Number (Required)</label>
-		<input type="number" name="number" min="1000" pattern="[0-9.]+"
-			required {{ with .No }} value="{{ . }}" {{ end }}>
-		{{ with .Errors.No }}
-		<label class="error" for="number">{{ . }}</label>
+		{{ with .Errors.General }}
+		<span class="error">Error: {{ . }}</span>
+		{{ end }}
+		<label for="meter-identification">Meter Identification (Required)</label>
+		<input type="text" name="meter-identification" min="1000" required
+			{{ with .MeterId }} value="{{ . }}" {{ end }}>
+		{{ with .Errors.MeterId }}
+		<label class="error" for="meter-identification">{{ . }}</label>
 		{{ end }}
 		<label for="number">Address (Required)</label>
 		<input type="text" name="address" minlength="8" required
