@@ -17,19 +17,26 @@ func WithCacheControl(h http.Handler, maxAge int) http.Handler {
 }
 
 const userIdKey = "userId"
+const emptyUserIdValue int32 = 0
 
-func (s *Server) RequireLogin(h http.Handler) http.Handler {
+func (s *Server) WithUserId(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		userId := s.sessionManager.GetInt32(ctx, userIdKey)
-		if userId == 0 {
+		ctx = context.WithValue(ctx, userIdKey, userId)
+		h.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (s *Server) WithRequiredLogin(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Context().Value(userIdKey) == emptyUserIdValue {
 			query := r.URL.Query()
 			query.Add("next", r.URL.Path)
 			redirectUrl := url.URL{Path: "/login", RawQuery: query.Encode()}
 			http.Redirect(w, r, redirectUrl.String(), http.StatusSeeOther)
 			return
 		}
-		ctx = context.WithValue(ctx, userIdKey, userId)
-		h.ServeHTTP(w, r.WithContext(ctx))
+		h.ServeHTTP(w, r)
 	})
 }

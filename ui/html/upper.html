@@ -6,4 +6,18 @@
     {{ template "head_tags" }}
 </head>
 <body>
+    <ul>
+        {{ if .UserLoggedIn }}
+        <li>
+            <form method="post" action="logout">
+                <input type="submit" value="Log Out">
+            </form>
+        </li>
+        {{ else }}
+        <li><a href="/signup">Sign Up</a></li>
+        <li><a href="/login">Log In</a></li>
+        {{ end }}
+        <li><a href="/main-meter-list">Main Meter List</a></li>
+        <li><a href="/main-meter-create">Create Main Meter</a></li>
+    </ul>
 {{ end }}

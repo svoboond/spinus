@@ -98,14 +98,18 @@ func New(config *conf.Conf) (*Server, error) {
 	router.Use(sessionManager.LoadAndSave)
 	// TODO - make level configurable
 	router.Use(chi_middleware.Compress(5, "text/*", "application/*"))
+	router.Use(app.WithUserId)
 
 	router.NotFound(app.HandleNotFound)
+	router.MethodNotAllowed(app.HandleNotAllowed)
 
 	// handlers
 	router.Handle("/static/*", WithCacheControl(
 		http.FileServer(http.FS(ui.EmbeddedContentStatic)),
 		31536000, // 1 year cache. We change file names if we update static files.
 	))
+
+	router.Get("/", app.HandleGetIndex)
 
 	router.Get("/signup", app.HandleGetSignUp)
 	router.Post("/signup", app.HandlePostSignUp)
@@ -114,7 +118,8 @@ func New(config *conf.Conf) (*Server, error) {
 
 	router.Group(func(loggedInRouter chi.Router) {
 		loggedInRouter.Use(router.Middlewares()...)
-		loggedInRouter.Use(app.RequireLogin)
+		loggedInRouter.Use(app.WithRequiredLogin)
+		router.Post("/logout", app.HandlePostLogOut)
 		loggedInRouter.Get("/main-meter-list", app.HandleGetMainMeterList)
 		loggedInRouter.Get("/main-meter-create", app.HandleGetMainMeterCreate)
 		loggedInRouter.Post("/main-meter-create", app.HandlePostMainMeterCreate)

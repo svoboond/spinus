@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -12,12 +13,30 @@ import (
 
 const errorTmplName = "error"
 
-func (s *Server) HandleInternalServerError(w http.ResponseWriter, err error) {
-	s.renderTemplate(w, errorTmplName, err.Error())
+type Upper struct {
+	UserLoggedIn bool
 }
 
-func (s *Server) renderTemplate(w http.ResponseWriter, name string, data any) error {
+func (s *Server) HandleInternalServerError(w http.ResponseWriter, r *http.Request, err error) {
+	s.renderTemplate(w, r, errorTmplName, err.Error())
+}
+
+func (s *Server) renderTemplate(
+	w http.ResponseWriter, r *http.Request, name string, data any) error {
+
+	const upperTmplName = "upper"
+
 	var buf bytes.Buffer
+	var userLoggedIn bool
+	if r.Context().Value(userIdKey) != emptyUserIdValue {
+		userLoggedIn = true
+	}
+	upperData := Upper{UserLoggedIn: userLoggedIn}
+	if err := s.templates.Render(&buf, upperTmplName, upperData); err != nil {
+		slog.Error("error rendering template", "template", upperTmplName, "err", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return err
+	}
 	if err := s.templates.Render(&buf, name, data); err != nil {
 		slog.Error("error rendering template", "template", name, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -27,15 +46,31 @@ func (s *Server) renderTemplate(w http.ResponseWriter, name string, data any) er
 	return nil
 }
 
-func (s *Server) HandleNotFound(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) HandleNotFound(w http.ResponseWriter, r *http.Request) {
 	const tmplData = "404 Page Not Found"
 	w.WriteHeader(http.StatusNotFound)
-	s.renderTemplate(w, errorTmplName, tmplData)
+	s.renderTemplate(w, r, errorTmplName, tmplData)
 }
 
-func (s *Server) HandleGetSignUp(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) HandleNotAllowed(w http.ResponseWriter, r *http.Request) {
+	const tmplData = "405 Method Not Allowed"
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	s.renderTemplate(w, r, errorTmplName, tmplData)
+}
+
+func (s *Server) HandleGetIndex(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "index"
+	s.renderTemplate(w, r, tmplName, nil)
+}
+
+func (s *Server) HandleGetSignUp(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "signUp"
-	s.renderTemplate(w, tmplName, nil)
+	s.renderTemplate(w, r, tmplName, nil)
+}
+
+func (s *Server) HandleGetLogIn(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "logIn"
+	s.renderTemplate(w, r, tmplName, nil)
 }
 
 func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +94,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			form.Errors["Username"] = "Username is already taken."
 		} else if err != pgx.ErrNoRows {
-			s.HandleInternalServerError(w, err)
+			s.HandleInternalServerError(w, r, err)
 			return
 		}
 	} else {
@@ -74,7 +109,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			form.Errors["Email"] = "Email is already assigned to another account."
 		} else if err != pgx.ErrNoRows {
-			s.HandleInternalServerError(w, err)
+			s.HandleInternalServerError(w, r, err)
 			return
 		}
 	} else {
@@ -98,7 +133,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(form.Errors) > 0 {
-		s.renderTemplate(w, tmplName, form)
+		s.renderTemplate(w, r, tmplName, form)
 		return
 	}
 
@@ -112,12 +147,12 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, err)
+		s.HandleInternalServerError(w, r, err)
 		return
 	}
 	if err := s.sessionManager.RenewToken(ctx); err != nil {
 		slog.Error("error renewing token", "err", err)
-		s.HandleInternalServerError(w, err)
+		s.HandleInternalServerError(w, r, err)
 		return
 	}
 	s.sessionManager.Put(ctx, "userId", user.ID)
@@ -130,13 +165,21 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, redirectUrl.String(), http.StatusSeeOther)
 		return
 	}
-
-	http.Redirect(w, r, "/main-meter-list", http.StatusSeeOther)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func (s *Server) HandleGetLogIn(w http.ResponseWriter, _ *http.Request) {
-	const tmplName = "logIn"
-	s.renderTemplate(w, tmplName, nil)
+func (s *Server) HandlePostLogOut(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "logOut"
+
+	ctx := r.Context()
+	if err := s.sessionManager.Destroy(ctx); err != nil {
+		slog.Error("error destroying token", "err", err)
+		ctx = context.WithValue(ctx, userIdKey, emptyUserIdValue)
+		s.HandleInternalServerError(w, r.WithContext(ctx), err)
+		return
+	}
+	ctx = context.WithValue(ctx, userIdKey, emptyUserIdValue)
+	s.renderTemplate(w, r.WithContext(ctx), tmplName, nil)
 }
 
 func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
@@ -165,7 +208,7 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(form.Errors) > 0 {
-		s.renderTemplate(w, tmplName, form)
+		s.renderTemplate(w, r, tmplName, form)
 		return
 	}
 
@@ -175,16 +218,16 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			form.Errors["General"] = "Wrong username or password."
-			s.renderTemplate(w, tmplName, form)
+			s.renderTemplate(w, r, tmplName, form)
 		} else {
 			slog.Error("error executing query", "err", err)
-			s.HandleInternalServerError(w, err)
+			s.HandleInternalServerError(w, r, err)
 		}
 		return
 	}
 	if err := s.sessionManager.RenewToken(ctx); err != nil {
 		slog.Error("error renewing token", "err", err)
-		s.HandleInternalServerError(w, err)
+		s.HandleInternalServerError(w, r, err)
 		return
 	}
 	s.sessionManager.Put(ctx, "userId", user.ID)
@@ -197,6 +240,7 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, redirectUrl.String(), http.StatusSeeOther)
 		return
 	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (s *Server) HandleGetMainMeterList(w http.ResponseWriter, r *http.Request) {
@@ -207,16 +251,16 @@ func (s *Server) HandleGetMainMeterList(w http.ResponseWriter, r *http.Request) 
 	mainMeters, err := s.queries.ListMainMeters(r.Context())
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, err)
+		s.HandleInternalServerError(w, r, err)
 		return
 	}
 
-	s.renderTemplate(w, tmplName, mainMeters)
+	s.renderTemplate(w, r, tmplName, mainMeters)
 }
 
 func (s *Server) HandleGetMainMeterCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mainMeterCreate"
-	s.renderTemplate(w, tmplName, nil)
+	s.renderTemplate(w, r, tmplName, nil)
 }
 
 func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Request) {
@@ -245,7 +289,7 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 	}
 
 	if len(form.Errors) > 0 {
-		s.renderTemplate(w, tmplName, form)
+		s.renderTemplate(w, r, tmplName, form)
 		return
 	}
 
@@ -253,7 +297,7 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 	userId, ok := ctx.Value(userIdKey).(int32)
 	if ok == false {
 		slog.Error("error converting user ID to int")
-		s.HandleInternalServerError(w, err)
+		s.HandleInternalServerError(w, r, err)
 		return
 	}
 	_, err = s.queries.CreateMainMeter(
@@ -263,7 +307,7 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 	)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, err)
+		s.HandleInternalServerError(w, r, err)
 		return
 	}
 
