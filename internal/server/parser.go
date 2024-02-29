@@ -3,6 +3,8 @@ package server
 import (
 	"errors"
 	"net/mail"
+
+	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
 )
 
 func parseUsername(username string) (string, error) {
@@ -44,8 +46,8 @@ func parseMeterId(meterId string) (string, error) {
 	switch {
 	case meterId == "":
 		return "", errors.New("Enter meter identification.")
-	case len(meterId) < 8:
-		return "", errors.New("Enter meter identification with at least 8 characters.")
+	case len(meterId) < 3:
+		return "", errors.New("Enter meter identification with at least 3 characters.")
 	default:
 		return meterId, nil
 	}
@@ -59,5 +61,17 @@ func parseAddress(address string) (string, error) {
 		return "", errors.New("Enter address with at least 8 characters.")
 	default:
 		return address, nil
+	}
+}
+
+func parseEnergy(energy string) (spinusdb.Energy, error) {
+	if energy == "" {
+		return "", errors.New("Enter energy.")
+	} else {
+		energy := spinusdb.Energy(energy)
+		if energy.Valid() == false {
+			return "", errors.New("Enter valid energy.")
+		}
+		return energy, nil
 	}
 }

@@ -19,6 +19,7 @@ type LogInForm struct {
 
 type MainMeterForm struct {
 	MeterId string
+	Energy  string
 	Address string
 	form
 }

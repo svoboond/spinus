@@ -5,18 +5,32 @@
 		{{ with .Errors.General }}
 		<span class="error">Error: {{ . }}</span>
 		{{ end }}
+
 		<label for="meter-identification">Meter Identification (Required)</label>
-		<input type="text" name="meter-identification" min="1000" required
+		<input type="text" name="meter-identification" id="meter-identification" minlength="3" required
 			{{ with .MeterId }} value="{{ . }}" {{ end }}>
 		{{ with .Errors.MeterId }}
 		<label class="error" for="meter-identification">{{ . }}</label>
 		{{ end }}
-		<label for="number">Address (Required)</label>
-		<input type="text" name="address" minlength="8" required
+
+		<label for="energy">Energy (Required)</label>
+		<select name="energy" id="energy" required>
+			<option value="">-- Select --</option>
+			<option value="electricity" {{ if eq .Energy "electricity" }} selected {{ end }}>Electricity</option>
+			<option value="gas" {{ if eq .Energy "gas" }} selected {{ end }}>Gas</option>
+			<option value="water" {{ if eq .Energy "water" }} selected {{ end }}>Water</option>
+		</select>
+		{{ with .Errors.Energy }}
+		<label class="error" for="energy">{{ . }}</label>
+		{{ end }}
+
+		<label for="address">Address (Required)</label>
+		<input type="text" name="address" id="address" minlength="8" required
 			{{ with .Address }} value="{{ . }}" {{ end }}>
 		{{ with .Errors.Address }}
-		<label class="error" for="number">{{ . }}</label>
+		<label class="error" for="address">{{ . }}</label>
 		{{ end }}
+
 		<input type="submit" value="Create">
 	</form>
 </main>

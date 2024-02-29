@@ -3,10 +3,14 @@ package server
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
 )
@@ -245,8 +249,6 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandleGetMainMeterList(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mainMeterList"
-	mmid := s.sessionManager.GetInt64(r.Context(), "mmid")
-	slog.Debug("session", "createdMainMeterId", mmid)
 
 	mainMeters, err := s.queries.ListMainMeters(r.Context())
 	if err != nil {
@@ -281,6 +283,13 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 		form.Errors["MeterId"] = err.Error()
 	}
 
+	energy := r.PostFormValue("energy")
+	form.Energy = energy
+	parsedEnergy, err := parseEnergy(energy)
+	if err != nil {
+		form.Errors["Energy"] = err.Error()
+	}
+
 	address := r.PostFormValue("address")
 	form.Address = address
 	parsedAddress, err := parseAddress(address)
@@ -294,16 +303,20 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 	}
 
 	ctx := r.Context()
-	userId, ok := ctx.Value(userIdKey).(int32)
+	userId, ok := GetUserId(ctx)
 	if ok == false {
-		slog.Error("error converting user ID to int")
-		s.HandleInternalServerError(w, r, err)
+		slog.Error("error getting user ID", "userId", userId)
+		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
-	_, err = s.queries.CreateMainMeter(
+	mainMeter, err := s.queries.CreateMainMeter(
 		ctx,
 		spinusdb.CreateMainMeterParams{
-			MeterID: parsedMeterId, Address: parsedAddress, FkUser: userId},
+			MeterID: parsedMeterId,
+			Energy:  parsedEnergy,
+			Address: parsedAddress,
+			FkUser:  userId,
+		},
 	)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
@@ -311,6 +324,27 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// TODO - redirect to main meter detail
-	http.Redirect(w, r, "/main-meter-list", http.StatusSeeOther)
+	http.Redirect(
+		w, r, fmt.Sprintf("/main-meter-detail/%d", mainMeter.ID), http.StatusSeeOther)
+}
+
+func (s *Server) HandleGetMainMeterDetail(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mainMeterDetail"
+
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 32)
+	if err != nil {
+		s.HandleNotFound(w, r)
+		return
+	}
+	mainMeter, err := s.queries.GetMainMeter(r.Context(), int32(id))
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			s.HandleNotFound(w, r)
+			return
+		}
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	s.renderTemplate(w, r, tmplName, mainMeter)
 }

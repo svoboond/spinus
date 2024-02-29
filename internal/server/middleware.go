@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 )
@@ -19,6 +21,11 @@ func WithCacheControl(h http.Handler, maxAge int) http.Handler {
 const userIdKey = "userId"
 const emptyUserIdValue int32 = 0
 
+func GetUserId(ctx context.Context) (int32, bool) {
+	u, ok := ctx.Value(userIdKey).(int32)
+	return u, ok
+}
+
 func (s *Server) WithUserId(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -30,7 +37,13 @@ func (s *Server) WithUserId(h http.Handler) http.Handler {
 
 func (s *Server) WithRequiredLogin(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Context().Value(userIdKey) == emptyUserIdValue {
+		userId, ok := GetUserId(r.Context())
+		if ok == false {
+			slog.Error("error getting user ID", "userId", userId)
+			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+			return
+		}
+		if userId == emptyUserIdValue {
 			query := r.URL.Query()
 			query.Add("next", r.URL.Path)
 			redirectUrl := url.URL{Path: "/login", RawQuery: query.Encode()}

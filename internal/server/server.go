@@ -123,6 +123,8 @@ func New(config *conf.Conf) (*Server, error) {
 		loggedInRouter.Get("/main-meter-list", app.HandleGetMainMeterList)
 		loggedInRouter.Get("/main-meter-create", app.HandleGetMainMeterCreate)
 		loggedInRouter.Post("/main-meter-create", app.HandlePostMainMeterCreate)
+		loggedInRouter.Get(
+			"/main-meter-detail/{id:^[0-9]+$}", app.HandleGetMainMeterDetail)
 	})
 
 	return app, nil

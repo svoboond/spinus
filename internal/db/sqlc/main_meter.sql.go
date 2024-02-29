@@ -11,25 +11,32 @@ import (
 
 const createMainMeter = `-- name: CreateMainMeter :one
 INSERT INTO main_meter (
-  meter_id, address, fk_user
+	meter_id, energy, address, fk_user
 ) VALUES (
-  $1, $2, $3
+	$1, $2, $3, $4
 )
-RETURNING id, meter_id, address, fk_user
+RETURNING id, meter_id, energy, address, fk_user
 `
 
 type CreateMainMeterParams struct {
 	MeterID string
+	Energy  Energy
 	Address string
 	FkUser  int32
 }
 
 func (q *Queries) CreateMainMeter(ctx context.Context, arg CreateMainMeterParams) (MainMeter, error) {
-	row := q.db.QueryRow(ctx, createMainMeter, arg.MeterID, arg.Address, arg.FkUser)
+	row := q.db.QueryRow(ctx, createMainMeter,
+		arg.MeterID,
+		arg.Energy,
+		arg.Address,
+		arg.FkUser,
+	)
 	var i MainMeter
 	err := row.Scan(
 		&i.ID,
 		&i.MeterID,
+		&i.Energy,
 		&i.Address,
 		&i.FkUser,
 	)
@@ -47,7 +54,7 @@ func (q *Queries) DeleteMainMeter(ctx context.Context, id int32) error {
 }
 
 const getMainMeter = `-- name: GetMainMeter :one
-SELECT id, meter_id, address, fk_user FROM main_meter
+SELECT id, meter_id, energy, address, fk_user FROM main_meter
 WHERE id = $1 LIMIT 1
 `
 
@@ -57,6 +64,7 @@ func (q *Queries) GetMainMeter(ctx context.Context, id int32) (MainMeter, error)
 	err := row.Scan(
 		&i.ID,
 		&i.MeterID,
+		&i.Energy,
 		&i.Address,
 		&i.FkUser,
 	)
@@ -64,8 +72,8 @@ func (q *Queries) GetMainMeter(ctx context.Context, id int32) (MainMeter, error)
 }
 
 const listMainMeters = `-- name: ListMainMeters :many
-SELECT id, meter_id, address, fk_user FROM main_meter
-ORDER BY meter_id
+SELECT id, meter_id, energy, address, fk_user FROM main_meter
+ORDER BY id
 `
 
 func (q *Queries) ListMainMeters(ctx context.Context) ([]MainMeter, error) {
@@ -80,6 +88,7 @@ func (q *Queries) ListMainMeters(ctx context.Context) ([]MainMeter, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.MeterID,
+			&i.Energy,
 			&i.Address,
 			&i.FkUser,
 		); err != nil {
@@ -95,15 +104,17 @@ func (q *Queries) ListMainMeters(ctx context.Context) ([]MainMeter, error) {
 
 const updateMainMeter = `-- name: UpdateMainMeter :exec
 UPDATE main_meter set
-  meter_id = $2,
-  address = $3,
-  fk_user = $4
+	meter_id = $2,
+	energy = $3,
+	address = $4,
+	fk_user = $5
 WHERE id = $1
 `
 
 type UpdateMainMeterParams struct {
 	ID      int32
 	MeterID string
+	Energy  Energy
 	Address string
 	FkUser  int32
 }
@@ -112,6 +123,7 @@ func (q *Queries) UpdateMainMeter(ctx context.Context, arg UpdateMainMeterParams
 	_, err := q.db.Exec(ctx, updateMainMeter,
 		arg.ID,
 		arg.MeterID,
+		arg.Energy,
 		arg.Address,
 		arg.FkUser,
 	)

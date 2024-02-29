@@ -11,9 +11,9 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO spinus_user (
-  username, email, password
+	username, email, password
 ) VALUES (
-  $1, $2, crypt($3, gen_salt('bf'))
+	$1, $2, crypt($3, gen_salt('bf'))
 )
 RETURNING id, username, email, password
 `

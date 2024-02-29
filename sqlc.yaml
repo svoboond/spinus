@@ -8,3 +8,4 @@ sql:
         package: "spinusdb"
         out: "./internal/db/sqlc"
         sql_package: "pgx/v5"
+        emit_enum_valid_method: true
