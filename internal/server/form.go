@@ -23,3 +23,8 @@ type MainMeterForm struct {
 	Address string
 	form
 }
+
+type SubMeterForm struct {
+	MeterId string
+	form
+}

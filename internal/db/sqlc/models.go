@@ -7,6 +7,8 @@ package spinusdb
 import (
 	"database/sql/driver"
 	"fmt"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Energy string
@@ -78,8 +80,8 @@ type SpinusUser struct {
 }
 
 type SubMeter struct {
-	ID          int32
-	MeterID     string
 	FkMainMeter int32
+	Subid       int32
+	MeterID     pgtype.Text
 	FkUser      int32
 }

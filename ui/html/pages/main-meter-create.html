@@ -1,13 +1,13 @@
 {{ define "mainMeterCreate" }}
 <main>
-	<h1>Main Meter Create</h1>
+	<h1>Create Main Meter</h1>
 	<form method="post">
 		{{ with .Errors.General }}
 		<span class="error">Error: {{ . }}</span>
 		{{ end }}
 
 		<label for="meter-identification">Meter Identification (Required)</label>
-		<input type="text" name="meter-identification" id="meter-identification" minlength="3" required
+		<input type="text" name="meter-identification" id="meter-identification" minlength="3" maxlength="64" required
 			{{ with .MeterId }} value="{{ . }}" {{ end }}>
 		{{ with .Errors.MeterId }}
 		<label class="error" for="meter-identification">{{ . }}</label>
@@ -25,7 +25,7 @@
 		{{ end }}
 
 		<label for="address">Address (Required)</label>
-		<input type="text" name="address" id="address" minlength="8" required
+		<input type="text" name="address" id="address" minlength="8" maxlength="255"required
 			{{ with .Address }} value="{{ . }}" {{ end }}>
 		{{ with .Errors.Address }}
 		<label class="error" for="address">{{ . }}</label>

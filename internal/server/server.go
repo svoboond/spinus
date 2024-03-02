@@ -120,11 +120,25 @@ func New(config *conf.Conf) (*Server, error) {
 		loggedInRouter.Use(router.Middlewares()...)
 		loggedInRouter.Use(app.WithRequiredLogin)
 		router.Post("/logout", app.HandlePostLogOut)
-		loggedInRouter.Get("/main-meter-list", app.HandleGetMainMeterList)
-		loggedInRouter.Get("/main-meter-create", app.HandleGetMainMeterCreate)
-		loggedInRouter.Post("/main-meter-create", app.HandlePostMainMeterCreate)
+		loggedInRouter.Get("/main-meter/list", app.HandleGetMainMeterList)
+		loggedInRouter.Get("/main-meter/create", app.HandleGetMainMeterCreate)
+		loggedInRouter.Post("/main-meter/create", app.HandlePostMainMeterCreate)
 		loggedInRouter.Get(
-			"/main-meter-detail/{id:^[0-9]+$}", app.HandleGetMainMeterDetail)
+			"/main-meter/{mainMeterId:^[0-9]+$}/general",
+			app.HandleGetMainMeterGeneral,
+		)
+		loggedInRouter.Get(
+			"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/list",
+			app.HandleGetSubMeterList,
+		)
+		loggedInRouter.Get(
+			"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/create",
+			app.HandleGetSubMeterCreate,
+		)
+		loggedInRouter.Post(
+			"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/create",
+			app.HandlePostSubMeterCreate,
+		)
 	})
 
 	return app, nil

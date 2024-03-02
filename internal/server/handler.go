@@ -21,6 +21,24 @@ type Upper struct {
 	UserLoggedIn bool
 }
 
+func (s *Server) HandleForbidden(w http.ResponseWriter, r *http.Request) {
+	const tmplData = "403 Forbidden"
+	w.WriteHeader(http.StatusForbidden)
+	s.renderTemplate(w, r, errorTmplName, tmplData)
+}
+
+func (s *Server) HandleNotFound(w http.ResponseWriter, r *http.Request) {
+	const tmplData = "404 Page Not Found"
+	w.WriteHeader(http.StatusNotFound)
+	s.renderTemplate(w, r, errorTmplName, tmplData)
+}
+
+func (s *Server) HandleNotAllowed(w http.ResponseWriter, r *http.Request) {
+	const tmplData = "405 Method Not Allowed"
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	s.renderTemplate(w, r, errorTmplName, tmplData)
+}
+
 func (s *Server) HandleInternalServerError(w http.ResponseWriter, r *http.Request, err error) {
 	s.renderTemplate(w, r, errorTmplName, err.Error())
 }
@@ -48,18 +66,6 @@ func (s *Server) renderTemplate(
 	}
 	buf.WriteTo(w)
 	return nil
-}
-
-func (s *Server) HandleNotFound(w http.ResponseWriter, r *http.Request) {
-	const tmplData = "404 Page Not Found"
-	w.WriteHeader(http.StatusNotFound)
-	s.renderTemplate(w, r, errorTmplName, tmplData)
-}
-
-func (s *Server) HandleNotAllowed(w http.ResponseWriter, r *http.Request) {
-	const tmplData = "405 Method Not Allowed"
-	w.WriteHeader(http.StatusMethodNotAllowed)
-	s.renderTemplate(w, r, errorTmplName, tmplData)
 }
 
 func (s *Server) HandleGetIndex(w http.ResponseWriter, r *http.Request) {
@@ -278,7 +284,7 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 
 	meterId := r.PostFormValue("meter-identification")
 	form.MeterId = meterId
-	parsedMeterId, err := parseMeterId(meterId)
+	parsedMeterId, err := parseMainMeterId(meterId)
 	if err != nil {
 		form.Errors["MeterId"] = err.Error()
 	}
@@ -325,15 +331,22 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 	}
 
 	http.Redirect(
-		w, r, fmt.Sprintf("/main-meter-detail/%d", mainMeter.ID), http.StatusSeeOther)
+		w, r, fmt.Sprintf("/main-meter/%d/general", mainMeter.ID), http.StatusSeeOther)
 }
 
-func (s *Server) HandleGetMainMeterDetail(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mainMeterDetail"
+func (s *Server) HandleGetMainMeterGeneral(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mainMeterGeneral"
 
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 32)
+	id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterId"), 10, 32)
 	if err != nil {
 		s.HandleNotFound(w, r)
+		return
+	}
+	ctx := r.Context()
+	userId, ok := GetUserId(ctx)
+	if ok == false {
+		slog.Error("error getting user ID", "userId", userId)
+		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
 	mainMeter, err := s.queries.GetMainMeter(r.Context(), int32(id))
@@ -346,5 +359,155 @@ func (s *Server) HandleGetMainMeterDetail(w http.ResponseWriter, r *http.Request
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.renderTemplate(w, r, tmplName, mainMeter)
+	// TODO - sub-meter users should also be allowed
+	if userId != mainMeter.FkUser {
+		s.HandleForbidden(w, r)
+		return
+	}
+	s.renderTemplate(
+		w, r,
+		tmplName,
+		MainMeterGeneralTmplData{
+			MainMeter: mainMeter,
+			Upper:     MainMeterTmplData{ID: mainMeter.ID},
+		},
+	)
+}
+
+func (s *Server) HandleGetSubMeterCreate(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "subMeterCreate"
+
+	id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterId"), 10, 32)
+	if err != nil {
+		s.HandleNotFound(w, r)
+		return
+	}
+	ctx := r.Context()
+	userId, ok := GetUserId(ctx)
+	if ok == false {
+		slog.Error("error getting user ID", "userId", userId)
+		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+		return
+	}
+	mainMeter, err := s.queries.GetMainMeter(r.Context(), int32(id))
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			s.HandleNotFound(w, r)
+			return
+		}
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	// TODO - sub-meter users should also be allowed
+	if userId != mainMeter.FkUser {
+		s.HandleForbidden(w, r)
+		return
+	}
+	s.renderTemplate(
+		w, r,
+		tmplName,
+		SubMeterCreateTmplData{
+			SubMeterForm: SubMeterForm{},
+			Upper:        MainMeterTmplData{ID: mainMeter.ID},
+		},
+	)
+}
+
+func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "subMeterCreate"
+
+	id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterId"), 10, 32)
+	if err != nil {
+		s.HandleNotFound(w, r)
+		return
+	}
+	ctx := r.Context()
+	userId, ok := GetUserId(ctx)
+	if ok == false {
+		slog.Error("error getting user ID", "userId", userId)
+		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+		return
+	}
+	mainMeter, err := s.queries.GetMainMeter(r.Context(), int32(id))
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			s.HandleNotFound(w, r)
+			return
+		}
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	// TODO - sub-meter users should also be allowed
+	if userId != mainMeter.FkUser {
+		s.HandleForbidden(w, r)
+		return
+	}
+
+	form := SubMeterForm{}
+	form.Errors = make(map[string]string)
+	if err := r.ParseForm(); err != nil {
+		slog.Info("error parsing form", "err", err)
+		form.Errors["General"] = "Bad request"
+		s.templates.Render(w, tmplName, form)
+		return
+	}
+
+	meterId := r.PostFormValue("meter-identification")
+	form.MeterId = meterId
+	parsedMeterId, err := parseSubMeterId(meterId)
+	if err != nil {
+		form.Errors["MeterId"] = err.Error()
+	}
+
+	if len(form.Errors) > 0 {
+		s.renderTemplate(w, r, tmplName, form)
+		return
+	}
+
+	_, err = s.queries.CreateSubMeter(
+		ctx,
+		spinusdb.CreateSubMeterParams{
+			FkMainMeter: mainMeter.ID,
+			FkUser:      userId,
+			MeterID:     parsedMeterId,
+		},
+	)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+
+	http.Redirect(
+		w, r,
+		fmt.Sprintf("/main-meter/%d/sub-meter/list", mainMeter.ID), http.StatusSeeOther,
+	)
+}
+
+func (s *Server) HandleGetSubMeterList(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "subMeterList"
+
+	id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterId"), 10, 32)
+	if err != nil {
+		s.HandleNotFound(w, r)
+		return
+	}
+	mainMeterId := int32(id)
+	subMeters, err := s.queries.ListSubMeters(r.Context(), mainMeterId)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+
+	s.renderTemplate(
+		w, r,
+		tmplName,
+		SubMeterListTmplData{
+			SubMeters: subMeters,
+			Upper:     MainMeterTmplData{ID: mainMeterId},
+		},
+	)
 }

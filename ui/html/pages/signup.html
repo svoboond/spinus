@@ -7,27 +7,27 @@
 		{{ end }}
 
 		<label for="username">Username (Required)</label>
-		<input type="text" name="username" required
+		<input type="text" name="username" maxlength="128" required
 			{{ with .Username }} value="{{ . }}" {{ end }}>
 		{{ with .Errors.Username }}
 		<label class="error" for="username">{{ . }}</label>
 		{{ end }}
 
 		<label for="email">Email (Required)</label>
-		<input type="email" name="email" required
+		<input type="email" name="email" maxlength="128" required
 			{{ with .Email }} value="{{ . }}" {{ end }}>
 		{{ with .Errors.Email }}
 		<label class="error" for="email">{{ . }}</label>
 		{{ end }}
 
 		<label for="password">Password (Required)</label>
-		<input type="password" name="password" required>
+		<input type="password" name="password" maxlength="128" required>
 		{{ with .Errors.Password }}
 		<label class="error" for="password">{{ . }}</label>
 		{{ end }}
 
 		<label for="repeat-password">Repeat password (Required)</label>
-		<input type="password" name="repeat-password" required>
+		<input type="password" name="repeat-password" maxlength="128" required>
 		{{ with .Errors.RepeatPassword }}
 		<label class="error" for="repeat-password">{{ . }}</label>
 		{{ end }}

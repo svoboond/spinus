@@ -6,13 +6,13 @@
 		<span class="error">Error: {{ . }}</span>
 		{{ end }}
 		<label for="username">Username (Required)</label>
-		<input type="text" name="username" required
+		<input type="text" name="username" maxlength="128" required
 			{{ with .Username }} value="{{ . }}" {{ end }}>
 		{{ with .Errors.Username }}
 		<label class="error" for="username">{{ . }}</label>
 		{{ end }}
 		<label for="password">Password (Required)</label>
-		<input type="password" name="password" required>
+		<input type="password" name="password" maxlength="128" required>
 		{{ with .Errors.Password }}
 		<label class="error" for="password">{{ . }}</label>
 		{{ end }}
