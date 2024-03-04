@@ -17,6 +17,6 @@ type SubMeterListTmplData struct {
 }
 
 type SubMeterCreateTmplData struct {
-	SubMeterForm
+	SubMeterFormData
 	Upper MainMeterTmplData
 }

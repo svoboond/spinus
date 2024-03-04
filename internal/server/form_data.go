@@ -1,30 +1,30 @@
 package server
 
-type form struct {
+type FormData struct {
 	Errors map[string]string
 }
 
-type SignUpForm struct {
+type SignUpFormData struct {
 	Username string
 	Email    string
 	Password string
-	form
+	FormData
 }
 
-type LogInForm struct {
+type LogInFormData struct {
 	Username string
 	Password string
-	form
+	FormData
 }
 
-type MainMeterForm struct {
+type MainMeterFormData struct {
 	MeterId string
 	Energy  string
 	Address string
-	form
+	FormData
 }
 
-type SubMeterForm struct {
+type SubMeterFormData struct {
 	MeterId string
-	form
+	FormData
 }
