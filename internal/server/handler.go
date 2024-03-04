@@ -342,10 +342,15 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 		w, r, fmt.Sprintf("/main-meter/%d/general", mainMeter.ID), http.StatusSeeOther)
 }
 
+func GetMainMeterId(r *http.Request) (int32, error) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterId"), 10, 32)
+	return int32(id), err
+}
+
 func (s *Server) HandleGetMainMeterGeneral(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mainMeterGeneral"
 
-	id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterId"), 10, 32)
+	mainMeterId, err := GetMainMeterId(r)
 	if err != nil {
 		s.HandleNotFound(w, r)
 		return
@@ -357,7 +362,7 @@ func (s *Server) HandleGetMainMeterGeneral(w http.ResponseWriter, r *http.Reques
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
-	mainMeter, err := s.queries.GetMainMeter(r.Context(), int32(id))
+	mainMeter, err := s.queries.GetMainMeter(r.Context(), mainMeterId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			s.HandleNotFound(w, r)
@@ -385,7 +390,7 @@ func (s *Server) HandleGetMainMeterGeneral(w http.ResponseWriter, r *http.Reques
 func (s *Server) HandleGetSubMeterCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "subMeterCreate"
 
-	id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterId"), 10, 32)
+	mainMeterId, err := GetMainMeterId(r)
 	if err != nil {
 		s.HandleNotFound(w, r)
 		return
@@ -397,7 +402,7 @@ func (s *Server) HandleGetSubMeterCreate(w http.ResponseWriter, r *http.Request)
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
-	mainMeter, err := s.queries.GetMainMeter(r.Context(), int32(id))
+	mainMeter, err := s.queries.GetMainMeter(r.Context(), mainMeterId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			s.HandleNotFound(w, r)
@@ -425,7 +430,7 @@ func (s *Server) HandleGetSubMeterCreate(w http.ResponseWriter, r *http.Request)
 func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "subMeterCreate"
 
-	id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterId"), 10, 32)
+	mainMeterId, err := GetMainMeterId(r)
 	if err != nil {
 		s.HandleNotFound(w, r)
 		return
@@ -437,7 +442,7 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
-	mainMeter, err := s.queries.GetMainMeter(r.Context(), int32(id))
+	mainMeter, err := s.queries.GetMainMeter(r.Context(), mainMeterId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			s.HandleNotFound(w, r)
@@ -501,7 +506,7 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 func (s *Server) HandleGetSubMeterList(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "subMeterList"
 
-	id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterId"), 10, 32)
+	mainMeterId, err := GetMainMeterId(r)
 	if err != nil {
 		s.HandleNotFound(w, r)
 		return
@@ -513,7 +518,7 @@ func (s *Server) HandleGetSubMeterList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
-	mainMeter, err := s.queries.GetMainMeter(r.Context(), int32(id))
+	mainMeter, err := s.queries.GetMainMeter(r.Context(), mainMeterId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			s.HandleNotFound(w, r)
@@ -529,7 +534,6 @@ func (s *Server) HandleGetSubMeterList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mainMeterId := int32(id)
 	subMeters, err := s.queries.ListSubMeters(r.Context(), mainMeterId)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
