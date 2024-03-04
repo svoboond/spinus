@@ -73,11 +73,12 @@ func (q *Queries) GetMainMeter(ctx context.Context, id int32) (MainMeter, error)
 
 const listMainMeters = `-- name: ListMainMeters :many
 SELECT id, meter_id, energy, address, fk_user FROM main_meter
+WHERE fk_user = $1
 ORDER BY id
 `
 
-func (q *Queries) ListMainMeters(ctx context.Context) ([]MainMeter, error) {
-	rows, err := q.db.Query(ctx, listMainMeters)
+func (q *Queries) ListMainMeters(ctx context.Context, fkUser int32) ([]MainMeter, error) {
+	rows, err := q.db.Query(ctx, listMainMeters, fkUser)
 	if err != nil {
 		return nil, err
 	}

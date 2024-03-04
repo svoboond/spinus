@@ -256,7 +256,15 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleGetMainMeterList(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mainMeterList"
 
-	mainMeters, err := s.queries.ListMainMeters(r.Context())
+	ctx := r.Context()
+	userId, ok := GetUserId(ctx)
+	if ok == false {
+		slog.Error("error getting user ID", "userId", userId)
+		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+		return
+	}
+	// TODO - list main meters where user is associated with sub meter
+	mainMeters, err := s.queries.ListMainMeters(r.Context(), userId)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -446,11 +454,15 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 	}
 
 	form := SubMeterForm{}
+	tmplData := SubMeterCreateTmplData{
+		SubMeterForm: form,
+		Upper:        MainMeterTmplData{ID: mainMeter.ID},
+	}
 	form.Errors = make(map[string]string)
 	if err := r.ParseForm(); err != nil {
 		slog.Info("error parsing form", "err", err)
 		form.Errors["General"] = "Bad request"
-		s.templates.Render(w, tmplName, form)
+		s.templates.Render(w, tmplName, tmplData)
 		return
 	}
 
@@ -462,7 +474,7 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 	}
 
 	if len(form.Errors) > 0 {
-		s.renderTemplate(w, r, tmplName, form)
+		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}
 
@@ -494,6 +506,29 @@ func (s *Server) HandleGetSubMeterList(w http.ResponseWriter, r *http.Request) {
 		s.HandleNotFound(w, r)
 		return
 	}
+	ctx := r.Context()
+	userId, ok := GetUserId(ctx)
+	if ok == false {
+		slog.Error("error getting user ID", "userId", userId)
+		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+		return
+	}
+	mainMeter, err := s.queries.GetMainMeter(r.Context(), int32(id))
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			s.HandleNotFound(w, r)
+			return
+		}
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	// TODO - sub-meter users should also be allowed
+	if userId != mainMeter.FkUser {
+		s.HandleForbidden(w, r)
+		return
+	}
+
 	mainMeterId := int32(id)
 	subMeters, err := s.queries.ListSubMeters(r.Context(), mainMeterId)
 	if err != nil {

@@ -4,6 +4,7 @@ WHERE id = $1 LIMIT 1;
 
 -- name: ListMainMeters :many
 SELECT * FROM main_meter
+WHERE fk_user = $1
 ORDER BY id;
 
 -- name: CreateMainMeter :one
