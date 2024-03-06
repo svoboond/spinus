@@ -1,0 +1,25 @@
+{{ define "subMeterOverview" }}
+<main>
+	{{ template "subMeterUpper" .Upper }}
+	<h1>Sub Meter Detail</h1>
+	<table>
+		<tr>
+			<th>SubID</th>
+			<th>Meter Identification</th>
+			<th>User Email</th>
+			<th>Address</th>
+			<th>Main Meter User Email</th>
+		</tr>
+		<tr>
+			<td>{{ .Subid }}</td>
+			{{ with .SubMeterID }}
+			<td>{{ .String }}</td>
+			{{ end }}
+			<td>{{ .SubUserEmail }}</td>
+			<td>{{ .Address }}</td>
+			<td>{{ .MainUserEmail }}</td>
+		</tr>
+	</table>
+</main>
+{{ template "lower" }}
+{{ end }}

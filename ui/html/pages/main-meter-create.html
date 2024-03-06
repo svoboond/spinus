@@ -25,7 +25,7 @@
 		{{ end }}
 
 		<label for="address">Address (Required)</label>
-		<input type="text" name="address" id="address" minlength="8" maxlength="255"required
+		<input type="text" name="address" id="address" minlength="8" maxlength="255" required
 			{{ with .Address }} value="{{ . }}" {{ end }}>
 		{{ with .Errors.Address }}
 		<label class="error" for="address">{{ . }}</label>

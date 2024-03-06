@@ -1,7 +1,8 @@
 {{ define "subMeterList" }}
 <main>
-    {{ template "mainMeterUpper" .Upper }}
-	<h1>Sub Meter List</h1>
+	{{ template "mainMeterUpper" .Upper }}
+	<h1>Sub Meters</h1>
+        <li><a href="/main-meter/{{ .Upper.ID }}/sub-meter/create">Create Sub Meter</a></li>
 	<table>
 		<tr>
 			<th>SubID</th>
@@ -10,12 +11,12 @@
 		</tr>
 		{{ range .SubMeters }}
 		<tr>
-			<td>{{ .Subid }}</th>
-            {{ with .MeterID }}
-			<td>{{ .String }}</th>
-            {{ end }}
-			<td>{{ .Email }}</th>
-            <td><a href="/main-meter/{{ $.Upper.ID }}/sub-meter/{{ .Subid }}/general">Detail</a></td>
+			<td>{{ .Subid }}</td>
+			{{ with .MeterID }}
+			<td>{{ .String }}</td>
+			{{ end }}
+			<td>{{ .Email }}</td>
+			<td><a href="/main-meter/{{ $.Upper.ID }}/sub-meter/{{ .Subid }}/overview">Detail</a></td>
 		</tr>
 		{{ end }}
 	</table>

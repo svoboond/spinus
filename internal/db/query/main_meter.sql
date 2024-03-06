@@ -1,6 +1,10 @@
 -- name: GetMainMeter :one
-SELECT * FROM main_meter
-WHERE id = $1 LIMIT 1;
+SELECT main_meter.*, spinus_user.email
+FROM main_meter
+JOIN spinus_user
+	ON main_meter.fk_user = spinus_user.id
+WHERE main_meter.id = $1
+LIMIT 1;
 
 -- name: ListMainMeters :many
 SELECT * FROM main_meter

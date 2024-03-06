@@ -1,6 +1,6 @@
-{{ define "mainMeterGeneral" }}
+{{ define "mainMeterOverview" }}
 <main>
-    {{ template "mainMeterUpper" .Upper }}
+	{{ template "mainMeterUpper" .Upper }}
 	<h1>Main Meter Detail</h1>
 	<table>
 		<tr>
@@ -10,10 +10,10 @@
 			<th>Address</th>
 		</tr>
 		<tr>
-			<td>{{ .ID }}</th>
-			<td>{{ .MeterID }}</th>
-			<td>{{ .Energy }}</th>
-			<td>{{ .Address }}</th>
+			<td>{{ .ID }}</td>
+			<td>{{ .MeterID }}</td>
+			<td>{{ .Energy }}</td>
+			<td>{{ .Address }}</td>
 		</tr>
 	</table>
 </main>

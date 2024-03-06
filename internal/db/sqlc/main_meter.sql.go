@@ -54,19 +54,33 @@ func (q *Queries) DeleteMainMeter(ctx context.Context, id int32) error {
 }
 
 const getMainMeter = `-- name: GetMainMeter :one
-SELECT id, meter_id, energy, address, fk_user FROM main_meter
-WHERE id = $1 LIMIT 1
+SELECT main_meter.id, main_meter.meter_id, main_meter.energy, main_meter.address, main_meter.fk_user, spinus_user.email
+FROM main_meter
+JOIN spinus_user
+	ON main_meter.fk_user = spinus_user.id
+WHERE main_meter.id = $1
+LIMIT 1
 `
 
-func (q *Queries) GetMainMeter(ctx context.Context, id int32) (MainMeter, error) {
+type GetMainMeterRow struct {
+	ID      int32
+	MeterID string
+	Energy  Energy
+	Address string
+	FkUser  int32
+	Email   string
+}
+
+func (q *Queries) GetMainMeter(ctx context.Context, id int32) (GetMainMeterRow, error) {
 	row := q.db.QueryRow(ctx, getMainMeter, id)
-	var i MainMeter
+	var i GetMainMeterRow
 	err := row.Scan(
 		&i.ID,
 		&i.MeterID,
 		&i.Energy,
 		&i.Address,
 		&i.FkUser,
+		&i.Email,
 	)
 	return i, err
 }

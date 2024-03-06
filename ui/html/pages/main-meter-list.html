@@ -1,6 +1,7 @@
 {{ define "mainMeterList" }}
 <main>
-	<h1>Main Meter List</h1>
+	<h1>My Main Meters</h1>
+        <li><a href="/main-meter/create">Create Main Meter</a></li>
 	<table>
 		<tr>
 			<th>ID</th>
@@ -10,11 +11,11 @@
 		</tr>
 		{{ range . }}
 		<tr>
-			<td>{{ .ID }}</th>
-			<td>{{ .MeterID }}</th>
-			<td>{{ .Energy }}</th>
-			<td>{{ .Address }}</th>
-			<td><a href="/main-meter/{{ .ID }}/general">Detail</a></td>
+			<td>{{ .ID }}</td>
+			<td>{{ .MeterID }}</td>
+			<td>{{ .Energy }}</td>
+			<td>{{ .Address }}</td>
+			<td><a href="/main-meter/{{ .ID }}/overview">Detail</a></td>
 		</tr>
 		{{ end }}
 	</table>

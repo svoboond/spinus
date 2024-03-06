@@ -32,6 +32,14 @@ CREATE TABLE sub_meter (
 	PRIMARY KEY(fk_main_meter, subid)
 );
 
+CREATE TABLE main_meter_reading (
+	id INT GENERATED ALWAYS AS IDENTITY,
+  	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
+	reading_value DOUBLE PRECISION NOT NULL,
+	reading_date DATE NOT NULL,
+  	PRIMARY KEY(id)
+);
+
 -- +goose Down
 DROP EXTENSION IF EXISTS citext;
 DROP EXTENSION IF EXISTS pgcrypto;
@@ -42,3 +50,5 @@ DROP TYPE IF EXISTS energy;
 DROP TABLE main_meter;
 
 DROP TABLE sub_meter;
+
+DROP TABLE main_meter_reading;

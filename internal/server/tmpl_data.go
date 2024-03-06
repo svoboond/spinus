@@ -6,8 +6,18 @@ type MainMeterTmplData struct {
 	ID int32
 }
 
-type MainMeterGeneralTmplData struct {
-	spinusdb.MainMeter
+type MainMeterOverviewTmplData struct {
+	spinusdb.GetMainMeterRow
+	Upper MainMeterTmplData
+}
+
+type MainMeterReadingListTmplData struct {
+	MainMeterReadings []spinusdb.MainMeterReading
+	Upper             MainMeterTmplData
+}
+
+type MainMeterReadingCreateTmplData struct {
+	MainMeterReadingFormData
 	Upper MainMeterTmplData
 }
 
@@ -19,4 +29,14 @@ type SubMeterListTmplData struct {
 type SubMeterCreateTmplData struct {
 	SubMeterFormData
 	Upper MainMeterTmplData
+}
+
+type SubMeterTmplData struct {
+	MainMeterID int32
+	Subid       int32
+}
+
+type SubMeterOverviewTmplData struct {
+	spinusdb.GetSubMeterRow
+	Upper SubMeterTmplData
 }

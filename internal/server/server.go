@@ -119,26 +119,51 @@ func New(config *conf.Conf) (*Server, error) {
 	router.Group(func(loggedInRouter chi.Router) {
 		loggedInRouter.Use(router.Middlewares()...)
 		loggedInRouter.Use(app.WithRequiredLogin)
-		router.Post("/logout", app.HandlePostLogOut)
+		loggedInRouter.Post("/logout", app.HandlePostLogOut)
 		loggedInRouter.Get("/main-meter/list", app.HandleGetMainMeterList)
 		loggedInRouter.Get("/main-meter/create", app.HandleGetMainMeterCreate)
 		loggedInRouter.Post("/main-meter/create", app.HandlePostMainMeterCreate)
-		loggedInRouter.Get(
-			"/main-meter/{mainMeterId:^[0-9]+$}/general",
-			app.HandleGetMainMeterGeneral,
-		)
-		loggedInRouter.Get(
-			"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/list",
-			app.HandleGetSubMeterList,
-		)
-		loggedInRouter.Get(
-			"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/create",
-			app.HandleGetSubMeterCreate,
-		)
-		loggedInRouter.Post(
-			"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/create",
-			app.HandlePostSubMeterCreate,
-		)
+		loggedInRouter.Group(func(mainMeterDetailRouter chi.Router) {
+			mainMeterDetailRouter.Use(loggedInRouter.Middlewares()...)
+			mainMeterDetailRouter.Use(app.WithMainMeter)
+			mainMeterDetailRouter.Get(
+				"/main-meter/{mainMeterId:^[0-9]+$}/overview",
+				app.HandleGetMainMeterOverview,
+			)
+			mainMeterDetailRouter.Get(
+				"/main-meter/{mainMeterId:^[0-9]+$}/reading/list",
+				app.HandleGetMainMeterReadingList,
+			)
+			mainMeterDetailRouter.Get(
+				"/main-meter/{mainMeterId:^[0-9]+$}/reading/create",
+				app.HandleGetMainMeterReadingCreate,
+			)
+			mainMeterDetailRouter.Post(
+				"/main-meter/{mainMeterId:^[0-9]+$}/reading/create",
+				app.HandlePostMainMeterReadingCreate,
+			)
+			mainMeterDetailRouter.Get(
+				"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/list",
+				app.HandleGetSubMeterList,
+			)
+			mainMeterDetailRouter.Get(
+				"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/create",
+				app.HandleGetSubMeterCreate,
+			)
+			mainMeterDetailRouter.Post(
+				"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/create",
+				app.HandlePostSubMeterCreate,
+			)
+		})
+		loggedInRouter.Group(func(subMeterDetailRouter chi.Router) {
+			subMeterDetailRouter.Use(loggedInRouter.Middlewares()...)
+			subMeterDetailRouter.Use(app.WithSubMeter)
+			subMeterDetailRouter.Get(
+				"/main-meter/{mainMeterId:^[0-9]+$}/"+
+					"sub-meter/{subMeterId:^[0-9]+$}/overview",
+				app.HandleGetSubMeterOverview,
+			)
+		})
 	})
 
 	return app, nil

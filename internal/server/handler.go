@@ -8,9 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
 )
@@ -339,82 +337,144 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 	}
 
 	http.Redirect(
-		w, r, fmt.Sprintf("/main-meter/%d/general", mainMeter.ID), http.StatusSeeOther)
+		w, r, fmt.Sprintf("/main-meter/%d/overview", mainMeter.ID), http.StatusSeeOther)
 }
 
-func GetMainMeterId(r *http.Request) (int32, error) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterId"), 10, 32)
-	return int32(id), err
-}
+func (s *Server) HandleGetMainMeterOverview(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mainMeterOverview"
 
-func (s *Server) HandleGetMainMeterGeneral(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mainMeterGeneral"
-
-	mainMeterId, err := GetMainMeterId(r)
-	if err != nil {
-		s.HandleNotFound(w, r)
-		return
-	}
 	ctx := r.Context()
-	userId, ok := GetUserId(ctx)
+	mainMeter, ok := GetMainMeter(ctx)
 	if ok == false {
-		slog.Error("error getting user ID", "userId", userId)
-		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
-		return
-	}
-	mainMeter, err := s.queries.GetMainMeter(r.Context(), mainMeterId)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			s.HandleNotFound(w, r)
-			return
-		}
-		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
-		return
-	}
-	// TODO - sub-meter users should also be allowed
-	if userId != mainMeter.FkUser {
-		s.HandleForbidden(w, r)
+		slog.Error("error getting main meter", "mainMeter", mainMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
 	s.renderTemplate(
 		w, r,
 		tmplName,
-		MainMeterGeneralTmplData{
-			MainMeter: mainMeter,
-			Upper:     MainMeterTmplData{ID: mainMeter.ID},
+		MainMeterOverviewTmplData{
+			GetMainMeterRow: mainMeter,
+			Upper:           MainMeterTmplData{ID: mainMeter.ID},
 		},
 	)
+}
+
+func (s *Server) HandleGetMainMeterReadingList(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mainMeterReadingList"
+
+	ctx := r.Context()
+	mainMeter, ok := GetMainMeter(ctx)
+	if ok == false {
+		slog.Error("error getting main meter", "mainMeter", mainMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		return
+	}
+	mainMeterId := mainMeter.ID
+	mainMeterReadings, err := s.queries.ListMainMeterReadings(r.Context(), mainMeterId)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	s.renderTemplate(
+		w, r,
+		tmplName,
+		MainMeterReadingListTmplData{
+			MainMeterReadings: mainMeterReadings,
+			Upper:             MainMeterTmplData{ID: mainMeterId},
+		},
+	)
+}
+
+func (s *Server) HandleGetMainMeterReadingCreate(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mainMeterReadingCreate"
+
+	ctx := r.Context()
+	mainMeter, ok := GetMainMeter(ctx)
+	if ok == false {
+		slog.Error("error getting main meter", "mainMeter", mainMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		return
+	}
+	s.renderTemplate(
+		w, r,
+		tmplName,
+		MainMeterReadingCreateTmplData{
+			MainMeterReadingFormData: MainMeterReadingFormData{},
+			Upper:                    MainMeterTmplData{ID: mainMeter.ID},
+		},
+	)
+}
+
+func (s *Server) HandlePostMainMeterReadingCreate(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mainMeterReadingCreate"
+
+	ctx := r.Context()
+	mainMeter, ok := GetMainMeter(ctx)
+	if ok == false {
+		slog.Error("error getting main meter", "mainMeter", mainMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		return
+	}
+
+	tmplData := MainMeterReadingCreateTmplData{
+		MainMeterReadingFormData: MainMeterReadingFormData{},
+		Upper:                    MainMeterTmplData{ID: mainMeter.ID},
+	}
+	tmplData.Errors = make(map[string]string)
+	if err := r.ParseForm(); err != nil {
+		slog.Info("error parsing form", "err", err)
+		tmplData.Errors["General"] = "Bad request"
+		s.templates.Render(w, tmplName, tmplData)
+		return
+	}
+
+	readingValue := r.PostFormValue("reading-value")
+	tmplData.ReadingValue = readingValue
+	parsedReadingValue, err := parseReadingValue(readingValue)
+	if err != nil {
+		tmplData.Errors["ReadingValue"] = err.Error()
+	}
+
+	readingDate := r.PostFormValue("reading-date")
+	tmplData.ReadingDate = readingDate
+	parsedReadingDate, err := parseDate(readingDate)
+	if err != nil {
+		tmplData.Errors["ReadingDate"] = err.Error()
+	}
+
+	if len(tmplData.Errors) > 0 {
+		s.renderTemplate(w, r, tmplName, tmplData)
+		return
+	}
+	mainMeterId := mainMeter.ID
+	_, err = s.queries.CreateMainMeterReading(
+		ctx,
+		spinusdb.CreateMainMeterReadingParams{
+			FkMainMeter:  mainMeterId,
+			ReadingValue: parsedReadingValue,
+			ReadingDate:  parsedReadingDate,
+		},
+	)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+
+	http.Redirect(
+		w, r, fmt.Sprintf("/main-meter/%d/reading/list", mainMeterId), http.StatusSeeOther)
 }
 
 func (s *Server) HandleGetSubMeterCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "subMeterCreate"
 
-	mainMeterId, err := GetMainMeterId(r)
-	if err != nil {
-		s.HandleNotFound(w, r)
-		return
-	}
 	ctx := r.Context()
-	userId, ok := GetUserId(ctx)
+	mainMeter, ok := GetMainMeter(ctx)
 	if ok == false {
-		slog.Error("error getting user ID", "userId", userId)
-		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
-		return
-	}
-	mainMeter, err := s.queries.GetMainMeter(r.Context(), mainMeterId)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			s.HandleNotFound(w, r)
-			return
-		}
-		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
-		return
-	}
-	// TODO - sub-meter users should also be allowed
-	if userId != mainMeter.FkUser {
-		s.HandleForbidden(w, r)
+		slog.Error("error getting main meter", "mainMeter", mainMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
 	s.renderTemplate(
@@ -430,11 +490,6 @@ func (s *Server) HandleGetSubMeterCreate(w http.ResponseWriter, r *http.Request)
 func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "subMeterCreate"
 
-	mainMeterId, err := GetMainMeterId(r)
-	if err != nil {
-		s.HandleNotFound(w, r)
-		return
-	}
 	ctx := r.Context()
 	userId, ok := GetUserId(ctx)
 	if ok == false {
@@ -442,19 +497,10 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
-	mainMeter, err := s.queries.GetMainMeter(r.Context(), mainMeterId)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			s.HandleNotFound(w, r)
-			return
-		}
-		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
-		return
-	}
-	// TODO - sub-meter users should also be allowed
-	if userId != mainMeter.FkUser {
-		s.HandleForbidden(w, r)
+	mainMeter, ok := GetMainMeter(ctx)
+	if ok == false {
+		slog.Error("error getting main meter", "mainMeter", mainMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
 
@@ -505,34 +551,15 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 func (s *Server) HandleGetSubMeterList(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "subMeterList"
 
-	mainMeterId, err := GetMainMeterId(r)
-	if err != nil {
-		s.HandleNotFound(w, r)
-		return
-	}
 	ctx := r.Context()
-	userId, ok := GetUserId(ctx)
+	mainMeter, ok := GetMainMeter(ctx)
 	if ok == false {
-		slog.Error("error getting user ID", "userId", userId)
-		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
-		return
-	}
-	mainMeter, err := s.queries.GetMainMeter(r.Context(), mainMeterId)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			s.HandleNotFound(w, r)
-			return
-		}
-		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
-		return
-	}
-	// TODO - sub-meter users should also be allowed
-	if userId != mainMeter.FkUser {
-		s.HandleForbidden(w, r)
+		slog.Error("error getting main meter", "mainMeter", mainMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
 
+	mainMeterId := mainMeter.ID
 	subMeters, err := s.queries.ListSubMeters(r.Context(), mainMeterId)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
@@ -546,6 +573,28 @@ func (s *Server) HandleGetSubMeterList(w http.ResponseWriter, r *http.Request) {
 		SubMeterListTmplData{
 			SubMeters: subMeters,
 			Upper:     MainMeterTmplData{ID: mainMeterId},
+		},
+	)
+}
+
+func (s *Server) HandleGetSubMeterOverview(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "subMeterOverview"
+
+	ctx := r.Context()
+	subMeter, ok := GetSubMeter(ctx)
+	if ok == false {
+		slog.Error("error getting sub meter", "subMeter", subMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
+		return
+	}
+
+	s.renderTemplate(
+		w, r,
+		tmplName,
+		SubMeterOverviewTmplData{
+			GetSubMeterRow: subMeter,
+			Upper: SubMeterTmplData{
+				MainMeterID: subMeter.MainMeterID, Subid: subMeter.Subid},
 		},
 	)
 }

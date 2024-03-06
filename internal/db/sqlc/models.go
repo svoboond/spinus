@@ -72,6 +72,13 @@ type MainMeter struct {
 	FkUser  int32
 }
 
+type MainMeterReading struct {
+	ID           int32
+	FkMainMeter  int32
+	ReadingValue float64
+	ReadingDate  pgtype.Date
+}
+
 type SpinusUser struct {
 	ID       int32
 	Username string

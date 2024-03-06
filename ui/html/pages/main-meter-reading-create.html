@@ -1,0 +1,28 @@
+{{ define "mainMeterReadingCreate" }}
+<main>
+	{{ template "mainMeterUpper" .Upper }}
+	<h1>Create Main Meter Reading</h1>
+	<form method="post">
+		{{ with .Errors.General }}
+		<span class="error">Error: {{ . }}</span>
+		{{ end }}
+
+		<label for="reading-value">Value (Required)</label>
+		<input type="number" step="0.001" name="reading-value" id="reading-value" min="0" required
+			{{ with .ReadingValue }} value="{{ . }}" {{ end }}>
+		{{ with .Errors.ReadingValue }}
+		<label class="error" for="reading-value">{{ . }}</label>
+		{{ end }}
+
+		<label for="reading-date">Date (Required)</label>
+		<input type="date" name="reading-date" id="reading-date" required
+			{{ with .ReadingDate }} value="{{ . }}" {{ end }}>
+		{{ with .Errors.ReadingDate }}
+		<label class="error" for="reading-date">{{ . }}</label>
+		{{ end }}
+
+		<input type="submit" value="Create">
+	</form>
+</main>
+{{ template "lower" }}
+{{ end }}

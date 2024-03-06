@@ -28,3 +28,9 @@ type SubMeterFormData struct {
 	MeterId string
 	FormData
 }
+
+type MainMeterReadingFormData struct {
+	ReadingValue string
+	ReadingDate  string
+	FormData
+}

@@ -3,7 +3,9 @@ package server
 import (
 	"errors"
 	"net/mail"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
@@ -104,11 +106,32 @@ func parseSubMeterId(meterId string) (pgtype.Text, error) {
 	case meterId == "":
 		return parsedMeterId, nil
 	case meterIdLen < 3:
-		return parsedMeterId, errors.New("Enter meter identification with at least 3 characters.")
+		return parsedMeterId, errors.New(
+			"Enter meter identification with at least 3 characters.")
 	case meterIdLen > 64:
-		return parsedMeterId, errors.New("Enter meter identification with maximum of 64 characters.")
+		return parsedMeterId, errors.New(
+			"Enter meter identification with maximum of 64 characters.")
 	default:
 		parsedMeterId.Valid = true
 		return parsedMeterId, nil
 	}
+}
+
+func parseReadingValue(readingValue string) (float64, error) {
+	rv, err := strconv.ParseFloat(readingValue, 64)
+	if err != nil {
+		return 0.0, errors.New("Enter valid reading value.")
+	}
+	return float64(rv), nil
+}
+
+func parseDate(date string) (pgtype.Date, error) {
+	var parsedDate pgtype.Date
+	t, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return parsedDate, errors.New("Enter valid reading date.")
+	}
+	parsedDate.Time = t
+	parsedDate.Valid = true
+	return parsedDate, nil
 }

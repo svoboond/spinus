@@ -1,5 +1,20 @@
 -- name: GetSubMeter :one
-SELECT * FROM sub_meter
+SELECT
+	sub_meter.subid,
+	sub_meter.meter_id AS sub_meter_id,
+	sub_meter.fk_user AS sub_user_id,
+	sub_meter.fk_main_meter AS main_meter_id,
+	sub_user.email AS sub_user_email,
+	main_meter.address,
+	main_meter.fk_user AS main_user_id,
+	main_user.email AS main_user_email
+FROM sub_meter
+JOIN main_meter
+	ON sub_meter.fk_main_meter = main_meter.id
+JOIN spinus_user AS sub_user
+	ON sub_meter.fk_user = sub_user.id
+JOIN spinus_user AS main_user
+	ON main_meter.fk_user = main_user.id
 WHERE fk_main_meter = $1 AND subid = $2
 LIMIT 1;
 
