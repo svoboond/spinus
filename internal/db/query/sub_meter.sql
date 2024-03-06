@@ -1,9 +1,9 @@
 -- name: GetSubMeter :one
 SELECT
+	sub_meter.fk_main_meter AS main_meter_id,
 	sub_meter.subid,
 	sub_meter.meter_id AS sub_meter_id,
 	sub_meter.fk_user AS sub_user_id,
-	sub_meter.fk_main_meter AS main_meter_id,
 	sub_user.email AS sub_user_email,
 	main_meter.address,
 	main_meter.fk_user AS main_user_id,
@@ -28,8 +28,8 @@ ORDER BY subid;
 
 -- name: CreateSubMeter :one
 INSERT INTO sub_meter (
-	meter_id, subid, fk_main_meter, fk_user
+	fk_main_meter, subid, meter_id, fk_user
 ) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3
 	FROM sub_meter
-	WHERE fk_main_meter = $2
+	WHERE fk_main_meter = $1
 RETURNING *;

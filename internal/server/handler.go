@@ -532,8 +532,8 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 		ctx,
 		spinusdb.CreateSubMeterParams{
 			FkMainMeter: mainMeter.ID,
-			FkUser:      userId,
 			MeterID:     parsedMeterId,
+			FkUser:      userId,
 		},
 	)
 	if err != nil {

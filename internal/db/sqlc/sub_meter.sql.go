@@ -13,23 +13,24 @@ import (
 
 const createSubMeter = `-- name: CreateSubMeter :one
 INSERT INTO sub_meter (
-	meter_id, subid, fk_main_meter, fk_user
+	fk_main_meter, subid, meter_id, fk_user
 ) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3
 	FROM sub_meter
-	WHERE fk_main_meter = $2
-RETURNING fk_main_meter, subid, meter_id, fk_user
+	WHERE fk_main_meter = $1
+RETURNING id, fk_main_meter, subid, meter_id, fk_user
 `
 
 type CreateSubMeterParams struct {
-	MeterID     pgtype.Text
 	FkMainMeter int32
+	MeterID     pgtype.Text
 	FkUser      int32
 }
 
 func (q *Queries) CreateSubMeter(ctx context.Context, arg CreateSubMeterParams) (SubMeter, error) {
-	row := q.db.QueryRow(ctx, createSubMeter, arg.MeterID, arg.FkMainMeter, arg.FkUser)
+	row := q.db.QueryRow(ctx, createSubMeter, arg.FkMainMeter, arg.MeterID, arg.FkUser)
 	var i SubMeter
 	err := row.Scan(
+		&i.ID,
 		&i.FkMainMeter,
 		&i.Subid,
 		&i.MeterID,
@@ -40,10 +41,10 @@ func (q *Queries) CreateSubMeter(ctx context.Context, arg CreateSubMeterParams) 
 
 const getSubMeter = `-- name: GetSubMeter :one
 SELECT
+	sub_meter.fk_main_meter AS main_meter_id,
 	sub_meter.subid,
 	sub_meter.meter_id AS sub_meter_id,
 	sub_meter.fk_user AS sub_user_id,
-	sub_meter.fk_main_meter AS main_meter_id,
 	sub_user.email AS sub_user_email,
 	main_meter.address,
 	main_meter.fk_user AS main_user_id,
@@ -65,10 +66,10 @@ type GetSubMeterParams struct {
 }
 
 type GetSubMeterRow struct {
+	MainMeterID   int32
 	Subid         int32
 	SubMeterID    pgtype.Text
 	SubUserID     int32
-	MainMeterID   int32
 	SubUserEmail  string
 	Address       string
 	MainUserID    int32
@@ -79,10 +80,10 @@ func (q *Queries) GetSubMeter(ctx context.Context, arg GetSubMeterParams) (GetSu
 	row := q.db.QueryRow(ctx, getSubMeter, arg.FkMainMeter, arg.Subid)
 	var i GetSubMeterRow
 	err := row.Scan(
+		&i.MainMeterID,
 		&i.Subid,
 		&i.SubMeterID,
 		&i.SubUserID,
-		&i.MainMeterID,
 		&i.SubUserEmail,
 		&i.Address,
 		&i.MainUserID,

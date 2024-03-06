@@ -13,11 +13,11 @@ import (
 
 const createMainMeterReading = `-- name: CreateMainMeterReading :one
 INSERT INTO main_meter_reading (
-	fk_main_meter, reading_value, reading_date
-) VALUES (
-	$1, $2, $3
-)
-RETURNING id, fk_main_meter, reading_value, reading_date
+	fk_main_meter, subid, reading_value, reading_date
+) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3
+	FROM main_meter_reading
+	WHERE fk_main_meter = $1
+RETURNING id, fk_main_meter, subid, reading_value, reading_date
 `
 
 type CreateMainMeterReadingParams struct {
@@ -32,6 +32,7 @@ func (q *Queries) CreateMainMeterReading(ctx context.Context, arg CreateMainMete
 	err := row.Scan(
 		&i.ID,
 		&i.FkMainMeter,
+		&i.Subid,
 		&i.ReadingValue,
 		&i.ReadingDate,
 	)
@@ -39,7 +40,7 @@ func (q *Queries) CreateMainMeterReading(ctx context.Context, arg CreateMainMete
 }
 
 const listMainMeterReadings = `-- name: ListMainMeterReadings :many
-SELECT id, fk_main_meter, reading_value, reading_date FROM main_meter_reading
+SELECT id, fk_main_meter, subid, reading_value, reading_date FROM main_meter_reading
 WHERE fk_main_meter = $1
 ORDER BY reading_date DESC
 `
@@ -56,6 +57,7 @@ func (q *Queries) ListMainMeterReadings(ctx context.Context, fkMainMeter int32) 
 		if err := rows.Scan(
 			&i.ID,
 			&i.FkMainMeter,
+			&i.Subid,
 			&i.ReadingValue,
 			&i.ReadingDate,
 		); err != nil {

@@ -25,19 +25,23 @@ CREATE TABLE main_meter (
 );
 
 CREATE TABLE sub_meter (
+	id INT GENERATED ALWAYS AS IDENTITY,
   	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
 	subid INT NOT NULL,
   	meter_id VARCHAR(64) CHECK (LENGTH(TRIM(meter_id)) >= 3),
   	fk_user INT NOT NULL REFERENCES spinus_user(id),
-	PRIMARY KEY(fk_main_meter, subid)
+  	PRIMARY KEY(id),
+	UNIQUE(fk_main_meter, subid)
 );
 
 CREATE TABLE main_meter_reading (
 	id INT GENERATED ALWAYS AS IDENTITY,
   	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
+	subid INT NOT NULL,
 	reading_value DOUBLE PRECISION NOT NULL,
 	reading_date DATE NOT NULL,
-  	PRIMARY KEY(id)
+  	PRIMARY KEY(id),
+	UNIQUE(fk_main_meter, subid)
 );
 
 -- +goose Down

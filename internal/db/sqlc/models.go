@@ -75,6 +75,7 @@ type MainMeter struct {
 type MainMeterReading struct {
 	ID           int32
 	FkMainMeter  int32
+	Subid        int32
 	ReadingValue float64
 	ReadingDate  pgtype.Date
 }
@@ -87,6 +88,7 @@ type SpinusUser struct {
 }
 
 type SubMeter struct {
+	ID          int32
 	FkMainMeter int32
 	Subid       int32
 	MeterID     pgtype.Text
