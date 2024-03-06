@@ -94,3 +94,11 @@ type SubMeter struct {
 	MeterID     pgtype.Text
 	FkUser      int32
 }
+
+type SubMeterReading struct {
+	ID           int32
+	FkSubMeter   int32
+	Subid        int32
+	ReadingValue float64
+	ReadingDate  pgtype.Date
+}

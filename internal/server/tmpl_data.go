@@ -40,3 +40,13 @@ type SubMeterOverviewTmplData struct {
 	spinusdb.GetSubMeterRow
 	Upper SubMeterTmplData
 }
+
+type SubMeterReadingListTmplData struct {
+	SubMeterReadings []spinusdb.SubMeterReading
+	Upper            SubMeterTmplData
+}
+
+type SubMeterReadingCreateTmplData struct {
+	SubMeterReadingFormData
+	Upper SubMeterTmplData
+}

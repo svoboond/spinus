@@ -41,6 +41,7 @@ func (q *Queries) CreateSubMeter(ctx context.Context, arg CreateSubMeterParams) 
 
 const getSubMeter = `-- name: GetSubMeter :one
 SELECT
+	sub_meter.id,
 	sub_meter.fk_main_meter AS main_meter_id,
 	sub_meter.subid,
 	sub_meter.meter_id AS sub_meter_id,
@@ -66,6 +67,7 @@ type GetSubMeterParams struct {
 }
 
 type GetSubMeterRow struct {
+	ID            int32
 	MainMeterID   int32
 	Subid         int32
 	SubMeterID    pgtype.Text
@@ -80,6 +82,7 @@ func (q *Queries) GetSubMeter(ctx context.Context, arg GetSubMeterParams) (GetSu
 	row := q.db.QueryRow(ctx, getSubMeter, arg.FkMainMeter, arg.Subid)
 	var i GetSubMeterRow
 	err := row.Scan(
+		&i.ID,
 		&i.MainMeterID,
 		&i.Subid,
 		&i.SubMeterID,

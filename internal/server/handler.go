@@ -598,3 +598,118 @@ func (s *Server) HandleGetSubMeterOverview(w http.ResponseWriter, r *http.Reques
 		},
 	)
 }
+
+func (s *Server) HandleGetSubMeterReadingList(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "subMeterReadingList"
+
+	ctx := r.Context()
+	subMeter, ok := GetSubMeter(ctx)
+	if ok == false {
+		slog.Error("error getting sub meter", "subMeter", subMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
+		return
+	}
+	subMeterSubid := subMeter.Subid
+	subMeterReadings, err := s.queries.ListSubMeterReadings(r.Context(), subMeterSubid)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	s.renderTemplate(
+		w, r,
+		tmplName,
+		SubMeterReadingListTmplData{
+			SubMeterReadings: subMeterReadings,
+			Upper: SubMeterTmplData{
+				MainMeterID: subMeter.MainMeterID, Subid: subMeterSubid},
+		},
+	)
+}
+
+func (s *Server) HandleGetSubMeterReadingCreate(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "subMeterReadingCreate"
+
+	ctx := r.Context()
+	subMeter, ok := GetSubMeter(ctx)
+	if ok == false {
+		slog.Error("error getting sub meter", "subMeter", subMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
+		return
+	}
+	s.renderTemplate(
+		w, r,
+		tmplName,
+		SubMeterReadingCreateTmplData{
+			SubMeterReadingFormData: SubMeterReadingFormData{},
+			Upper: SubMeterTmplData{
+				MainMeterID: subMeter.MainMeterID, Subid: subMeter.Subid},
+		},
+	)
+}
+
+func (s *Server) HandlePostSubMeterReadingCreate(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "subMeterReadingCreate"
+
+	ctx := r.Context()
+	subMeter, ok := GetSubMeter(ctx)
+	if ok == false {
+		slog.Error("error getting sub meter", "subMeter", subMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
+		return
+	}
+
+	mainMeterId := subMeter.MainMeterID
+	subMeterSubid := subMeter.Subid
+	tmplData := SubMeterReadingCreateTmplData{
+		SubMeterReadingFormData: SubMeterReadingFormData{},
+		Upper: SubMeterTmplData{
+			MainMeterID: mainMeterId, Subid: subMeterSubid},
+	}
+	tmplData.Errors = make(map[string]string)
+	if err := r.ParseForm(); err != nil {
+		slog.Info("error parsing form", "err", err)
+		tmplData.Errors["General"] = "Bad request"
+		s.templates.Render(w, tmplName, tmplData)
+		return
+	}
+
+	readingValue := r.PostFormValue("reading-value")
+	tmplData.ReadingValue = readingValue
+	parsedReadingValue, err := parseReadingValue(readingValue)
+	if err != nil {
+		tmplData.Errors["ReadingValue"] = err.Error()
+	}
+
+	readingDate := r.PostFormValue("reading-date")
+	tmplData.ReadingDate = readingDate
+	parsedReadingDate, err := parseDate(readingDate)
+	if err != nil {
+		tmplData.Errors["ReadingDate"] = err.Error()
+	}
+
+	if len(tmplData.Errors) > 0 {
+		s.renderTemplate(w, r, tmplName, tmplData)
+		return
+	}
+	_, err = s.queries.CreateSubMeterReading(
+		ctx,
+		spinusdb.CreateSubMeterReadingParams{
+			FkSubMeter:   subMeter.ID,
+			ReadingValue: parsedReadingValue,
+			ReadingDate:  parsedReadingDate,
+		},
+	)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+
+	http.Redirect(
+		w, r,
+		fmt.Sprintf(
+			"/main-meter/%d/sub-meter/%d/reading/list", mainMeterId, subMeterSubid),
+		http.StatusSeeOther,
+	)
+}

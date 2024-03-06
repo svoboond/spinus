@@ -163,6 +163,21 @@ func New(config *conf.Conf) (*Server, error) {
 					"sub-meter/{subMeterId:^[0-9]+$}/overview",
 				app.HandleGetSubMeterOverview,
 			)
+			subMeterDetailRouter.Get(
+				"/main-meter/{mainMeterId:^[0-9]+$}/"+
+					"sub-meter/{subMeterId:^[0-9]+$}/reading/list",
+				app.HandleGetSubMeterReadingList,
+			)
+			subMeterDetailRouter.Get(
+				"/main-meter/{mainMeterId:^[0-9]+$}/"+
+					"sub-meter/{subMeterId:^[0-9]+$}/reading/create",
+				app.HandleGetSubMeterReadingCreate,
+			)
+			subMeterDetailRouter.Post(
+				"/main-meter/{mainMeterId:^[0-9]+$}/"+
+					"sub-meter/{subMeterId:^[0-9]+$}/reading/create",
+				app.HandlePostSubMeterReadingCreate,
+			)
 		})
 	})
 

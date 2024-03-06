@@ -44,6 +44,16 @@ CREATE TABLE main_meter_reading (
 	UNIQUE(fk_main_meter, subid)
 );
 
+CREATE TABLE sub_meter_reading (
+	id INT GENERATED ALWAYS AS IDENTITY,
+  	fk_sub_meter INT NOT NULL REFERENCES sub_meter(id),
+	subid INT NOT NULL,
+	reading_value DOUBLE PRECISION NOT NULL,
+	reading_date DATE NOT NULL,
+  	PRIMARY KEY(id),
+	UNIQUE(fk_sub_meter, subid)
+);
+
 -- +goose Down
 DROP EXTENSION IF EXISTS citext;
 DROP EXTENSION IF EXISTS pgcrypto;
@@ -56,3 +66,4 @@ DROP TABLE main_meter;
 DROP TABLE sub_meter;
 
 DROP TABLE main_meter_reading;
+DROP TABLE sub_meter_reading;

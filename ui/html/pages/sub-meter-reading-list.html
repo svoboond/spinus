@@ -1,0 +1,23 @@
+{{ define "subMeterReadingList" }}
+<main>
+	{{ template "subMeterUpper" .Upper }}
+	<h1>Sub Meter Readings</h1>
+	<li><a href="/main-meter/{{ .Upper.MainMeterID }}/sub-meter/{{ .Upper.Subid }}/reading/create">Create Reading</a></li>
+	<table>
+		<tr>
+			<th>ID</th>
+			<th>Value</th>
+			<th>Date</th>
+		</tr>
+		{{ range .SubMeterReadings }}
+		<tr>
+			<td>{{ .ID }}</td>
+			<td>{{ printf "%.3f" .ReadingValue }}</td>
+			<td><input type="date" disabled
+				{{ with .ReadingDate }} value="{{ .Time.Format "2006-01-02" }}" {{ end }}></td>
+		</tr>
+		{{ end }}
+	</table>
+</main>
+{{ template "lower" }}
+{{ end }}

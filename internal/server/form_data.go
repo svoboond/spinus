@@ -34,3 +34,9 @@ type MainMeterReadingFormData struct {
 	ReadingDate  string
 	FormData
 }
+
+type SubMeterReadingFormData struct {
+	ReadingValue string
+	ReadingDate  string
+	FormData
+}

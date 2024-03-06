@@ -1,5 +1,6 @@
 -- name: GetSubMeter :one
 SELECT
+	sub_meter.id,
 	sub_meter.fk_main_meter AS main_meter_id,
 	sub_meter.subid,
 	sub_meter.meter_id AS sub_meter_id,
