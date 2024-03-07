@@ -2,14 +2,14 @@
 <main>
 	<h1>Create Main Meter</h1>
 	<form method="post">
-		{{ with .Errors.General }}
+		{{ with .GeneralError }}
 		<span class="error">Error: {{ . }}</span>
 		{{ end }}
 
 		<label for="meter-identification">Meter Identification (Required)</label>
 		<input type="text" name="meter-identification" id="meter-identification" minlength="3" maxlength="64" required
-			{{ with .MeterId }} value="{{ . }}" {{ end }}>
-		{{ with .Errors.MeterId }}
+			{{ with .MeterID }} value="{{ . }}" {{ end }}>
+		{{ with .MeterIDError }}
 		<label class="error" for="meter-identification">{{ . }}</label>
 		{{ end }}
 
@@ -20,14 +20,14 @@
 			<option value="gas" {{ if eq .Energy "gas" }} selected {{ end }}>Gas</option>
 			<option value="water" {{ if eq .Energy "water" }} selected {{ end }}>Water</option>
 		</select>
-		{{ with .Errors.Energy }}
+		{{ with .EnergyError }}
 		<label class="error" for="energy">{{ . }}</label>
 		{{ end }}
 
 		<label for="address">Address (Required)</label>
 		<input type="text" name="address" id="address" minlength="8" maxlength="255" required
 			{{ with .Address }} value="{{ . }}" {{ end }}>
-		{{ with .Errors.Address }}
+		{{ with .AddressError }}
 		<label class="error" for="address">{{ . }}</label>
 		{{ end }}
 

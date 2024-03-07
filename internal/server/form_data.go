@@ -1,42 +1,52 @@
 package server
 
-type FormData struct {
-	Errors map[string]string
-}
-
 type SignUpFormData struct {
-	Username string
-	Email    string
-	Password string
-	FormData
+	GeneralError        string
+	Username            string
+	UsernameError       string
+	Email               string
+	EmailError          string
+	Password            string
+	PasswordError       string
+	RepeatPasswordError string
 }
 
 type LogInFormData struct {
-	Username string
-	Password string
-	FormData
+	GeneralError  string
+	Username      string
+	UsernameError string
+	Password      string
+	PasswordError string
 }
 
 type MainMeterFormData struct {
-	MeterId string
-	Energy  string
-	Address string
-	FormData
+	GeneralError string
+	MeterID      string
+	MeterIDError string
+	Energy       string
+	EnergyError  string
+	Address      string
+	AddressError string
 }
 
 type SubMeterFormData struct {
-	MeterId string
-	FormData
+	GeneralError string
+	MeterID      string
+	MeterIDError string
 }
 
 type MainMeterReadingFormData struct {
-	ReadingValue string
-	ReadingDate  string
-	FormData
+	GeneralError      string
+	ReadingValue      string
+	ReadingValueError string
+	ReadingDate       string
+	ReadingDateError  string
 }
 
 type SubMeterReadingFormData struct {
-	ReadingValue string
-	ReadingDate  string
-	FormData
+	GeneralError      string
+	ReadingValue      string
+	ReadingValueError string
+	ReadingDate       string
+	ReadingDateError  string
 }

@@ -3,14 +3,14 @@
     {{ template "mainMeterUpper" .Upper }}
 	<h1>Create Sub Meter</h1>
 	<form method="post">
-		{{ with .Errors.General }}
+		{{ with .GeneralError }}
 		<span class="error">Error: {{ . }}</span>
 		{{ end }}
 
 		<label for="meter-identification">Meter Identification</label>
 		<input type="text" name="meter-identification" id="meter-identification" maxlength="64"
-			{{ with .MeterId }} value="{{ . }}" {{ end }}>
-		{{ with .Errors.MeterId }}
+			{{ with .MeterID }} value="{{ . }}" {{ end }}>
+		{{ with .MeterIDError }}
 		<label class="error" for="meter-identification">{{ . }}</label>
 		{{ end }}
 

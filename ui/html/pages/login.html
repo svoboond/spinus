@@ -2,18 +2,18 @@
 <main>
 	<h1>Log in</h1>
 	<form method="post">
-		{{ with .Errors.General }}
+		{{ with .GeneralError }}
 		<span class="error">Error: {{ . }}</span>
 		{{ end }}
 		<label for="username">Username (Required)</label>
 		<input type="text" name="username" maxlength="128" required
 			{{ with .Username }} value="{{ . }}" {{ end }}>
-		{{ with .Errors.Username }}
+		{{ with .UsernameError }}
 		<label class="error" for="username">{{ . }}</label>
 		{{ end }}
 		<label for="password">Password (Required)</label>
 		<input type="password" name="password" maxlength="128" required>
-		{{ with .Errors.Password }}
+		{{ with .PasswordError }}
 		<label class="error" for="password">{{ . }}</label>
 		{{ end }}
 		<input type="submit" value="Log in">

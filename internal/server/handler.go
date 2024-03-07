@@ -84,10 +84,11 @@ func (s *Server) HandleGetLogIn(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "signUp"
 	formData := SignUpFormData{}
-	formData.Errors = make(map[string]string)
+	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Info("error parsing form", "err", err)
-		formData.Errors["General"] = "Bad request"
+		formData.GeneralError = "Bad request"
+		formError = true
 		s.templates.Render(w, tmplName, formData)
 		return
 	}
@@ -100,13 +101,15 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		_, err := s.queries.GetUserByUsername(ctx, parsedUsername)
 		if err == nil {
-			formData.Errors["Username"] = "Username is already taken."
+			formData.UsernameError = "Username is already taken."
+			formError = true
 		} else if err != pgx.ErrNoRows {
 			s.HandleInternalServerError(w, r, err)
 			return
 		}
 	} else {
-		formData.Errors["Username"] = err.Error()
+		formData.UsernameError = err.Error()
+		formError = true
 	}
 
 	email := r.PostFormValue("email")
@@ -115,32 +118,37 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		_, err := s.queries.GetUserByEmail(ctx, parsedEmail)
 		if err == nil {
-			formData.Errors["Email"] = "Email is already assigned to another account."
+			formData.EmailError = "Email is already assigned to another account."
+			formError = true
 		} else if err != pgx.ErrNoRows {
 			s.HandleInternalServerError(w, r, err)
 			return
 		}
 	} else {
-		formData.Errors["Email"] = err.Error()
+		formData.EmailError = err.Error()
+		formError = true
 	}
 
 	parsedPassword, passwordErr := parsePassword(r.PostFormValue("password"))
 	if passwordErr != nil {
-		formData.Errors["Password"] = passwordErr.Error()
+		formData.PasswordError = passwordErr.Error()
+		formError = true
 	}
 	parsedRepeatPassword, repeatPasswordErr := parsePassword(
 		r.PostFormValue("repeat-password"))
 	if repeatPasswordErr != nil {
-		formData.Errors["RepeatPassword"] = repeatPasswordErr.Error()
+		formData.RepeatPasswordError = repeatPasswordErr.Error()
+		formError = true
 	}
 	if passwordErr == nil &&
 		repeatPasswordErr == nil &&
 		parsedPassword != parsedRepeatPassword {
 
-		formData.Errors["Password"] = "Passwords do not match."
+		formData.PasswordError = "Passwords do not match."
+		formError = true
 	}
 
-	if len(formData.Errors) > 0 {
+	if formError {
 		s.renderTemplate(w, r, tmplName, formData)
 		return
 	}
@@ -193,10 +201,11 @@ func (s *Server) HandlePostLogOut(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "logIn"
 	formData := LogInFormData{}
-	formData.Errors = make(map[string]string)
+	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Info("error parsing form", "err", err)
-		formData.Errors["General"] = "Bad request"
+		formData.GeneralError = "Bad request"
+		formError = true
 		s.templates.Render(w, tmplName, formData)
 		return
 	}
@@ -205,17 +214,19 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	formData.Username = username
 	parsedUsername, err := parseUsername(username)
 	if err != nil {
-		formData.Errors["Username"] = err.Error()
+		formData.UsernameError = err.Error()
+		formError = true
 	}
 
 	password := r.PostFormValue("password")
 	formData.Password = password
 	parsedPassword, err := parsePassword(password)
 	if err != nil {
-		formData.Errors["Password"] = err.Error()
+		formData.PasswordError = err.Error()
+		formError = true
 	}
 
-	if len(formData.Errors) > 0 {
+	if formError {
 		s.renderTemplate(w, r, tmplName, formData)
 		return
 	}
@@ -225,7 +236,7 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 		ctx, spinusdb.GetUserParams{Username: parsedUsername, Crypt: parsedPassword})
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			formData.Errors["General"] = "Wrong username or password."
+			formData.GeneralError = "Wrong username or password."
 			s.renderTemplate(w, r, tmplName, formData)
 		} else {
 			slog.Error("error executing query", "err", err)
@@ -280,36 +291,40 @@ func (s *Server) HandleGetMainMeterCreate(w http.ResponseWriter, r *http.Request
 func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mainMeterCreate"
 	formData := MainMeterFormData{}
-	formData.Errors = make(map[string]string)
+	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Info("error parsing form", "err", err)
-		formData.Errors["General"] = "Bad request"
+		formData.GeneralError = "Bad request"
+		formError = true
 		s.templates.Render(w, tmplName, formData)
 		return
 	}
 
 	meterId := r.PostFormValue("meter-identification")
-	formData.MeterId = meterId
+	formData.MeterID = meterId
 	parsedMeterId, err := parseMainMeterId(meterId)
 	if err != nil {
-		formData.Errors["MeterId"] = err.Error()
+		formData.MeterIDError = err.Error()
+		formError = true
 	}
 
 	energy := r.PostFormValue("energy")
 	formData.Energy = energy
 	parsedEnergy, err := parseEnergy(energy)
 	if err != nil {
-		formData.Errors["Energy"] = err.Error()
+		formData.EnergyError = err.Error()
+		formError = true
 	}
 
 	address := r.PostFormValue("address")
 	formData.Address = address
 	parsedAddress, err := parseAddress(address)
 	if err != nil {
-		formData.Errors["Address"] = err.Error()
+		formData.AddressError = err.Error()
+		formError = true
 	}
 
-	if len(formData.Errors) > 0 {
+	if formError {
 		s.renderTemplate(w, r, tmplName, formData)
 		return
 	}
@@ -422,10 +437,11 @@ func (s *Server) HandlePostMainMeterReadingCreate(w http.ResponseWriter, r *http
 		MainMeterReadingFormData: MainMeterReadingFormData{},
 		Upper:                    MainMeterTmplData{ID: mainMeter.ID},
 	}
-	tmplData.Errors = make(map[string]string)
+	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Info("error parsing form", "err", err)
-		tmplData.Errors["General"] = "Bad request"
+		tmplData.GeneralError = "Bad request"
+		formError = true
 		s.templates.Render(w, tmplName, tmplData)
 		return
 	}
@@ -434,17 +450,19 @@ func (s *Server) HandlePostMainMeterReadingCreate(w http.ResponseWriter, r *http
 	tmplData.ReadingValue = readingValue
 	parsedReadingValue, err := parseReadingValue(readingValue)
 	if err != nil {
-		tmplData.Errors["ReadingValue"] = err.Error()
+		tmplData.ReadingValueError = err.Error()
+		formError = true
 	}
 
 	readingDate := r.PostFormValue("reading-date")
 	tmplData.ReadingDate = readingDate
 	parsedReadingDate, err := parseDate(readingDate)
 	if err != nil {
-		tmplData.Errors["ReadingDate"] = err.Error()
+		tmplData.ReadingDateError = err.Error()
+		formError = true
 	}
 
-	if len(tmplData.Errors) > 0 {
+	if formError {
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}
@@ -508,22 +526,24 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 		SubMeterFormData: SubMeterFormData{},
 		Upper:            MainMeterTmplData{ID: mainMeter.ID},
 	}
-	tmplData.Errors = make(map[string]string)
+	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Info("error parsing form", "err", err)
-		tmplData.Errors["General"] = "Bad request"
+		tmplData.GeneralError = "Bad request"
+		formError = true
 		s.templates.Render(w, tmplName, tmplData)
 		return
 	}
 
 	meterId := r.PostFormValue("meter-identification")
-	tmplData.MeterId = meterId
+	tmplData.MeterID = meterId
 	parsedMeterId, err := parseSubMeterId(meterId)
 	if err != nil {
-		tmplData.Errors["MeterId"] = err.Error()
+		tmplData.MeterIDError = err.Error()
+		formError = true
 	}
 
-	if len(tmplData.Errors) > 0 {
+	if formError {
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}
@@ -666,10 +686,11 @@ func (s *Server) HandlePostSubMeterReadingCreate(w http.ResponseWriter, r *http.
 		Upper: SubMeterTmplData{
 			MainMeterID: mainMeterId, Subid: subMeterSubid},
 	}
-	tmplData.Errors = make(map[string]string)
+	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Info("error parsing form", "err", err)
-		tmplData.Errors["General"] = "Bad request"
+		tmplData.GeneralError = "Bad request"
+		formError = true
 		s.templates.Render(w, tmplName, tmplData)
 		return
 	}
@@ -678,17 +699,19 @@ func (s *Server) HandlePostSubMeterReadingCreate(w http.ResponseWriter, r *http.
 	tmplData.ReadingValue = readingValue
 	parsedReadingValue, err := parseReadingValue(readingValue)
 	if err != nil {
-		tmplData.Errors["ReadingValue"] = err.Error()
+		tmplData.ReadingValueError = err.Error()
+		formError = true
 	}
 
 	readingDate := r.PostFormValue("reading-date")
 	tmplData.ReadingDate = readingDate
 	parsedReadingDate, err := parseDate(readingDate)
 	if err != nil {
-		tmplData.Errors["ReadingDate"] = err.Error()
+		tmplData.ReadingDateError = err.Error()
+		formError = true
 	}
 
-	if len(tmplData.Errors) > 0 {
+	if formError {
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}
