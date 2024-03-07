@@ -21,13 +21,13 @@
 		{{ end }}
 
 		<label for="password">Password (Required)</label>
-		<input type="password" name="password" maxlength="128" required>
+		<input type="password" name="password" minlength="8" maxlength="128" required>
 		{{ with .PasswordError }}
 		<label class="error" for="password">{{ . }}</label>
 		{{ end }}
 
 		<label for="repeat-password">Repeat password (Required)</label>
-		<input type="password" name="repeat-password" maxlength="128" required>
+		<input type="password" name="repeat-password" minlength="8" maxlength="128" required>
 		{{ with .RepeatPasswordError }}
 		<label class="error" for="repeat-password">{{ . }}</label>
 		{{ end }}
