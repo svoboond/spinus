@@ -56,18 +56,18 @@ func parsePassword(password string) (string, error) {
 	}
 }
 
-func parseMainMeterId(meterId string) (string, error) {
-	meterId = strings.TrimSpace(meterId)
-	meterIdLen := len(meterId)
+func parseMainMeterID(meterID string) (string, error) {
+	meterID = strings.TrimSpace(meterID)
+	meterIDLen := len(meterID)
 	switch {
-	case meterId == "":
+	case meterID == "":
 		return "", errors.New("Enter meter identification.")
-	case meterIdLen < 3:
+	case meterIDLen < 3:
 		return "", errors.New("Enter meter identification with at least 3 characters.")
-	case meterIdLen > 64:
+	case meterIDLen > 64:
 		return "", errors.New("Enter meter identification with maximum of 64 characters.")
 	default:
-		return meterId, nil
+		return meterID, nil
 	}
 }
 
@@ -98,22 +98,22 @@ func parseEnergy(energy string) (spinusdb.Energy, error) {
 	}
 }
 
-func parseSubMeterId(meterId string) (pgtype.Text, error) {
-	meterId = strings.TrimSpace(meterId)
-	meterIdLen := len(meterId)
-	parsedMeterId := pgtype.Text{String: meterId}
+func parseSubMeterID(meterID string) (pgtype.Text, error) {
+	meterID = strings.TrimSpace(meterID)
+	meterIDLen := len(meterID)
+	parsedMeterID := pgtype.Text{String: meterID}
 	switch {
-	case meterId == "":
-		return parsedMeterId, nil
-	case meterIdLen < 3:
-		return parsedMeterId, errors.New(
+	case meterID == "":
+		return parsedMeterID, nil
+	case meterIDLen < 3:
+		return parsedMeterID, errors.New(
 			"Enter meter identification with at least 3 characters.")
-	case meterIdLen > 64:
-		return parsedMeterId, errors.New(
+	case meterIDLen > 64:
+		return parsedMeterID, errors.New(
 			"Enter meter identification with maximum of 64 characters.")
 	default:
-		parsedMeterId.Valid = true
-		return parsedMeterId, nil
+		parsedMeterID.Valid = true
+		return parsedMeterID, nil
 	}
 }
 

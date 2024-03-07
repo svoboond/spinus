@@ -48,7 +48,7 @@ func (s *Server) renderTemplate(
 
 	var buf bytes.Buffer
 	var userLoggedIn bool
-	if r.Context().Value(userIdKey) != emptyUserIdValue {
+	if r.Context().Value(userIDKey) != emptyUserIDValue {
 		userLoggedIn = true
 	}
 	upperData := Upper{UserLoggedIn: userLoggedIn}
@@ -171,7 +171,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.sessionManager.Put(ctx, "userId", user.ID)
+	s.sessionManager.Put(ctx, "userID", user.ID)
 
 	query := r.URL.Query()
 	next := query.Get("next")
@@ -190,11 +190,11 @@ func (s *Server) HandlePostLogOut(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if err := s.sessionManager.Destroy(ctx); err != nil {
 		slog.Error("error destroying token", "err", err)
-		ctx = context.WithValue(ctx, userIdKey, emptyUserIdValue)
+		ctx = context.WithValue(ctx, userIDKey, emptyUserIDValue)
 		s.HandleInternalServerError(w, r.WithContext(ctx), err)
 		return
 	}
-	ctx = context.WithValue(ctx, userIdKey, emptyUserIdValue)
+	ctx = context.WithValue(ctx, userIDKey, emptyUserIDValue)
 	s.renderTemplate(w, r.WithContext(ctx), tmplName, nil)
 }
 
@@ -249,7 +249,7 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.sessionManager.Put(ctx, "userId", user.ID)
+	s.sessionManager.Put(ctx, "userID", user.ID)
 
 	query := r.URL.Query()
 	next := query.Get("next")
@@ -266,14 +266,14 @@ func (s *Server) HandleGetMainMeterList(w http.ResponseWriter, r *http.Request) 
 	const tmplName = "mainMeterList"
 
 	ctx := r.Context()
-	userId, ok := GetUserId(ctx)
+	userID, ok := UserID(ctx)
 	if ok == false {
-		slog.Error("error getting user ID", "userId", userId)
+		slog.Error("error getting user ID", "userID", userID)
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
 	// TODO - list main meters where user is associated with sub meter
-	mainMeters, err := s.queries.ListMainMeters(r.Context(), userId)
+	mainMeters, err := s.queries.ListMainMeters(r.Context(), userID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -300,9 +300,9 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	meterId := r.PostFormValue("meter-identification")
-	formData.MeterID = meterId
-	parsedMeterId, err := parseMainMeterId(meterId)
+	meterID := r.PostFormValue("meter-identification")
+	formData.MeterID = meterID
+	parsedMeterID, err := parseMainMeterID(meterID)
 	if err != nil {
 		formData.MeterIDError = err.Error()
 		formError = true
@@ -330,19 +330,19 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 	}
 
 	ctx := r.Context()
-	userId, ok := GetUserId(ctx)
+	userID, ok := UserID(ctx)
 	if ok == false {
-		slog.Error("error getting user ID", "userId", userId)
+		slog.Error("error getting user ID", "userID", userID)
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
 	mainMeter, err := s.queries.CreateMainMeter(
 		ctx,
 		spinusdb.CreateMainMeterParams{
-			MeterID: parsedMeterId,
+			MeterID: parsedMeterID,
 			Energy:  parsedEnergy,
 			Address: parsedAddress,
-			FkUser:  userId,
+			FkUser:  userID,
 		},
 	)
 	if err != nil {
@@ -385,8 +385,8 @@ func (s *Server) HandleGetMainMeterReadingList(w http.ResponseWriter, r *http.Re
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
-	mainMeterId := mainMeter.ID
-	mainMeterReadings, err := s.queries.ListMainMeterReadings(r.Context(), mainMeterId)
+	mainMeterID := mainMeter.ID
+	mainMeterReadings, err := s.queries.ListMainMeterReadings(r.Context(), mainMeterID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -397,7 +397,7 @@ func (s *Server) HandleGetMainMeterReadingList(w http.ResponseWriter, r *http.Re
 		tmplName,
 		MainMeterReadingListTmplData{
 			MainMeterReadings: mainMeterReadings,
-			Upper:             MainMeterTmplData{ID: mainMeterId},
+			Upper:             MainMeterTmplData{ID: mainMeterID},
 		},
 	)
 }
@@ -466,11 +466,11 @@ func (s *Server) HandlePostMainMeterReadingCreate(w http.ResponseWriter, r *http
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}
-	mainMeterId := mainMeter.ID
+	mainMeterID := mainMeter.ID
 	_, err = s.queries.CreateMainMeterReading(
 		ctx,
 		spinusdb.CreateMainMeterReadingParams{
-			FkMainMeter:  mainMeterId,
+			FkMainMeter:  mainMeterID,
 			ReadingValue: parsedReadingValue,
 			ReadingDate:  parsedReadingDate,
 		},
@@ -482,7 +482,7 @@ func (s *Server) HandlePostMainMeterReadingCreate(w http.ResponseWriter, r *http
 	}
 
 	http.Redirect(
-		w, r, fmt.Sprintf("/main-meter/%d/reading/list", mainMeterId), http.StatusSeeOther)
+		w, r, fmt.Sprintf("/main-meter/%d/reading/list", mainMeterID), http.StatusSeeOther)
 }
 
 func (s *Server) HandleGetSubMeterCreate(w http.ResponseWriter, r *http.Request) {
@@ -509,9 +509,9 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 	const tmplName = "subMeterCreate"
 
 	ctx := r.Context()
-	userId, ok := GetUserId(ctx)
+	userID, ok := UserID(ctx)
 	if ok == false {
-		slog.Error("error getting user ID", "userId", userId)
+		slog.Error("error getting user ID", "userID", userID)
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
@@ -535,9 +535,9 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	meterId := r.PostFormValue("meter-identification")
-	tmplData.MeterID = meterId
-	parsedMeterId, err := parseSubMeterId(meterId)
+	meterID := r.PostFormValue("meter-identification")
+	tmplData.MeterID = meterID
+	parsedMeterID, err := parseSubMeterID(meterID)
 	if err != nil {
 		tmplData.MeterIDError = err.Error()
 		formError = true
@@ -552,8 +552,8 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 		ctx,
 		spinusdb.CreateSubMeterParams{
 			FkMainMeter: mainMeter.ID,
-			MeterID:     parsedMeterId,
-			FkUser:      userId,
+			MeterID:     parsedMeterID,
+			FkUser:      userID,
 		},
 	)
 	if err != nil {
@@ -579,8 +579,8 @@ func (s *Server) HandleGetSubMeterList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mainMeterId := mainMeter.ID
-	subMeters, err := s.queries.ListSubMeters(r.Context(), mainMeterId)
+	mainMeterID := mainMeter.ID
+	subMeters, err := s.queries.ListSubMeters(r.Context(), mainMeterID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -592,7 +592,7 @@ func (s *Server) HandleGetSubMeterList(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SubMeterListTmplData{
 			SubMeters: subMeters,
-			Upper:     MainMeterTmplData{ID: mainMeterId},
+			Upper:     MainMeterTmplData{ID: mainMeterID},
 		},
 	)
 }
@@ -679,12 +679,12 @@ func (s *Server) HandlePostSubMeterReadingCreate(w http.ResponseWriter, r *http.
 		return
 	}
 
-	mainMeterId := subMeter.MainMeterID
+	mainMeterID := subMeter.MainMeterID
 	subMeterSubid := subMeter.Subid
 	tmplData := SubMeterReadingCreateTmplData{
 		SubMeterReadingFormData: SubMeterReadingFormData{},
 		Upper: SubMeterTmplData{
-			MainMeterID: mainMeterId, Subid: subMeterSubid},
+			MainMeterID: mainMeterID, Subid: subMeterSubid},
 	}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
@@ -732,7 +732,7 @@ func (s *Server) HandlePostSubMeterReadingCreate(w http.ResponseWriter, r *http.
 	http.Redirect(
 		w, r,
 		fmt.Sprintf(
-			"/main-meter/%d/sub-meter/%d/reading/list", mainMeterId, subMeterSubid),
+			"/main-meter/%d/sub-meter/%d/reading/list", mainMeterID, subMeterSubid),
 		http.StatusSeeOther,
 	)
 }

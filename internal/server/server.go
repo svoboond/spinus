@@ -98,7 +98,7 @@ func New(config *conf.Conf) (*Server, error) {
 	router.Use(sessionManager.LoadAndSave)
 	// TODO - make level configurable
 	router.Use(chi_middleware.Compress(5, "text/*", "application/*"))
-	router.Use(app.WithUserId)
+	router.Use(app.WithUserID)
 
 	router.NotFound(app.HandleNotFound)
 	router.MethodNotAllowed(app.HandleNotAllowed)
@@ -127,31 +127,31 @@ func New(config *conf.Conf) (*Server, error) {
 			mainMeterDetailRouter.Use(loggedInRouter.Middlewares()...)
 			mainMeterDetailRouter.Use(app.WithMainMeter)
 			mainMeterDetailRouter.Get(
-				"/main-meter/{mainMeterId:^[0-9]+$}/overview",
+				"/main-meter/{mainMeterID:^[0-9]+$}/overview",
 				app.HandleGetMainMeterOverview,
 			)
 			mainMeterDetailRouter.Get(
-				"/main-meter/{mainMeterId:^[0-9]+$}/reading/list",
+				"/main-meter/{mainMeterID:^[0-9]+$}/reading/list",
 				app.HandleGetMainMeterReadingList,
 			)
 			mainMeterDetailRouter.Get(
-				"/main-meter/{mainMeterId:^[0-9]+$}/reading/create",
+				"/main-meter/{mainMeterID:^[0-9]+$}/reading/create",
 				app.HandleGetMainMeterReadingCreate,
 			)
 			mainMeterDetailRouter.Post(
-				"/main-meter/{mainMeterId:^[0-9]+$}/reading/create",
+				"/main-meter/{mainMeterID:^[0-9]+$}/reading/create",
 				app.HandlePostMainMeterReadingCreate,
 			)
 			mainMeterDetailRouter.Get(
-				"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/list",
+				"/main-meter/{mainMeterID:^[0-9]+$}/sub-meter/list",
 				app.HandleGetSubMeterList,
 			)
 			mainMeterDetailRouter.Get(
-				"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/create",
+				"/main-meter/{mainMeterID:^[0-9]+$}/sub-meter/create",
 				app.HandleGetSubMeterCreate,
 			)
 			mainMeterDetailRouter.Post(
-				"/main-meter/{mainMeterId:^[0-9]+$}/sub-meter/create",
+				"/main-meter/{mainMeterID:^[0-9]+$}/sub-meter/create",
 				app.HandlePostSubMeterCreate,
 			)
 		})
@@ -159,23 +159,23 @@ func New(config *conf.Conf) (*Server, error) {
 			subMeterDetailRouter.Use(loggedInRouter.Middlewares()...)
 			subMeterDetailRouter.Use(app.WithSubMeter)
 			subMeterDetailRouter.Get(
-				"/main-meter/{mainMeterId:^[0-9]+$}/"+
-					"sub-meter/{subMeterId:^[0-9]+$}/overview",
+				"/main-meter/{mainMeterID:^[0-9]+$}/"+
+					"sub-meter/{subMeterID:^[0-9]+$}/overview",
 				app.HandleGetSubMeterOverview,
 			)
 			subMeterDetailRouter.Get(
-				"/main-meter/{mainMeterId:^[0-9]+$}/"+
-					"sub-meter/{subMeterId:^[0-9]+$}/reading/list",
+				"/main-meter/{mainMeterID:^[0-9]+$}/"+
+					"sub-meter/{subMeterID:^[0-9]+$}/reading/list",
 				app.HandleGetSubMeterReadingList,
 			)
 			subMeterDetailRouter.Get(
-				"/main-meter/{mainMeterId:^[0-9]+$}/"+
-					"sub-meter/{subMeterId:^[0-9]+$}/reading/create",
+				"/main-meter/{mainMeterID:^[0-9]+$}/"+
+					"sub-meter/{subMeterID:^[0-9]+$}/reading/create",
 				app.HandleGetSubMeterReadingCreate,
 			)
 			subMeterDetailRouter.Post(
-				"/main-meter/{mainMeterId:^[0-9]+$}/"+
-					"sub-meter/{subMeterId:^[0-9]+$}/reading/create",
+				"/main-meter/{mainMeterID:^[0-9]+$}/"+
+					"sub-meter/{subMeterID:^[0-9]+$}/reading/create",
 				app.HandlePostSubMeterReadingCreate,
 			)
 		})
