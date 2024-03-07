@@ -83,7 +83,7 @@ func (s *Server) HandleGetLogIn(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "signUp"
-	formData := &SignUpFormData{}
+	formData := SignUpFormData{}
 	formData.Errors = make(map[string]string)
 	if err := r.ParseForm(); err != nil {
 		slog.Info("error parsing form", "err", err)
@@ -192,7 +192,7 @@ func (s *Server) HandlePostLogOut(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "logIn"
-	formData := &LogInFormData{}
+	formData := LogInFormData{}
 	formData.Errors = make(map[string]string)
 	if err := r.ParseForm(); err != nil {
 		slog.Info("error parsing form", "err", err)
