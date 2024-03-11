@@ -3,10 +3,7 @@ CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE spinus_user (
-	id INT GENERATED ALWAYS AS IDENTITY,
-	username VARCHAR(128) UNIQUE NOT NULL CHECK (LENGTH(TRIM(username)) >= 3),
-	email VARCHAR(128) UNIQUE NOT NULL CHECK (email ~ '^[a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'),
-	password VARCHAR(128) NOT NULL CHECK (LENGTH(password) >= 8),
+	id INT GENERATED ALWAYS AS IDENTITY, username VARCHAR(128) UNIQUE NOT NULL CHECK (LENGTH(TRIM(username)) >= 3), email VARCHAR(128) UNIQUE NOT NULL CHECK (email ~ '^[a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'), password VARCHAR(128) NOT NULL CHECK (LENGTH(password) >= 8),
 	PRIMARY KEY(id)
 );
 
@@ -34,16 +31,6 @@ CREATE TABLE sub_meter (
 	UNIQUE(fk_main_meter, subid)
 );
 
-CREATE TABLE main_meter_reading (
-	id INT GENERATED ALWAYS AS IDENTITY,
-  	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
-	subid INT NOT NULL,
-	reading_value DOUBLE PRECISION NOT NULL,
-	reading_date DATE NOT NULL,
-  	PRIMARY KEY(id),
-	UNIQUE(fk_main_meter, subid)
-);
-
 CREATE TABLE sub_meter_reading (
 	id INT GENERATED ALWAYS AS IDENTITY,
   	fk_sub_meter INT NOT NULL REFERENCES sub_meter(id),
@@ -52,6 +39,16 @@ CREATE TABLE sub_meter_reading (
 	reading_date DATE NOT NULL,
   	PRIMARY KEY(id),
 	UNIQUE(fk_sub_meter, subid)
+);
+
+CREATE TABLE main_meter_billing (
+	id INT GENERATED ALWAYS AS IDENTITY,
+  	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
+	subid INT NOT NULL,
+	begin_date DATE NOT NULL,
+	end_date DATE NOT NULL,
+  	PRIMARY KEY(id),
+	UNIQUE(fk_main_meter, subid)
 );
 
 -- +goose Down

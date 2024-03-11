@@ -1,0 +1,31 @@
+{{ define "billingCreate" }}
+<main>
+	<h1>New Billing</h1>
+	<form method="post">
+		{{ range .BillingPeriod }}
+		<fieldset>
+			{{ with .GeneralError }}
+			<span class="error">Error: {{ . }}</span>
+			{{ end }}
+
+			<label for="begin-date">Begin Date (Required)</label>
+			<input type="date" name="begin-date" id="begin-date" required
+				{{ with .BeginDate }} value="{{ . }}" {{ end }}>
+			{{ with .BeginDateError }}
+			<label class="error" for="begin-date">{{ . }}</label>
+			{{ end }}
+
+			<label for="end-date">End Date (Required)</label>
+			<input type="date" name="end-date" id="end-date" required
+				{{ with .EndDate }} value="{{ . }}" {{ end }}>
+			{{ with .EndDateError }}
+			<label class="error" for="end-date">{{ . }}</label>
+			{{ end }}
+		</fieldset>
+		{{ end }}
+
+		<input type="submit" value="Create">
+	</form>
+</main>
+{{ template "lower" }}
+{{ end }}

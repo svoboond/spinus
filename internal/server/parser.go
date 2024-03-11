@@ -129,7 +129,7 @@ func parseDate(date string) (pgtype.Date, error) {
 	var parsedDate pgtype.Date
 	t, err := time.Parse("2006-01-02", date)
 	if err != nil {
-		return parsedDate, errors.New("Enter valid reading date.")
+		return parsedDate, errors.New("Enter valid date.")
 	}
 	parsedDate.Time = t
 	parsedDate.Valid = true

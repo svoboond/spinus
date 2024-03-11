@@ -35,14 +35,6 @@ type SubMeterFormData struct {
 	MeterIDError string
 }
 
-type MainMeterReadingFormData struct {
-	GeneralError      string
-	ReadingValue      string
-	ReadingValueError string
-	ReadingDate       string
-	ReadingDateError  string
-}
-
 type SubMeterReadingFormData struct {
 	GeneralError      string
 	ReadingValue      string
