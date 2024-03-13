@@ -675,10 +675,10 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
+	var billingPeriods []MainMeterBillingPeriodFormData
 	tmplData := MainMeterBillingCreateTmplData{
-		MainMeterBillingFormData: MainMeterBillingFormData{
-			BillingPeriods: make([]MainMeterBillingPeriodFormData, 1)},
-		Upper: MainMeterTmplData{ID: mainMeter.ID},
+		MainMeterBillingFormData: MainMeterBillingFormData{BillingPeriods: billingPeriods},
+		Upper:                    MainMeterTmplData{ID: mainMeter.ID},
 	}
 	// var formError bool
 	if err := r.ParseForm(); err != nil {
@@ -688,9 +688,14 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		s.templates.Render(w, tmplName, tmplData)
 		return
 	}
+	for i, beginDate := range r.PostForm["begin-date"] {
+		billingPeriod := MainMeterBillingPeriodFormData{}
+		billingPeriods = append(billingPeriods, billingPeriod)
+	}
 	beginDate := r.PostFormValue("begin-date")
 	addBillingPeriod := r.PostFormValue("add-billing-period")
-	slog.Info("hello", "beginDate", beginDate, "addBillingPeriod", addBillingPeriod)
+	maxDayDiff := r.PostForm["begin-date"]
+	slog.Info("hello", "beginDate", beginDate, "addBillingPeriod", addBillingPeriod, "maxDayDiff", maxDayDiff, "foo", len(maxDayDiff))
 
 	s.renderTemplate(w, r, tmplName, tmplData)
 }
