@@ -1,30 +1,73 @@
-{{ define "billingCreate" }}
+{{ define "mainMeterBillingCreate" }}
 <main>
 	<h1>New Billing</h1>
 	<form method="post">
-		{{ range .BillingPeriod }}
-		<fieldset>
-			{{ with .GeneralError }}
-			<span class="error">Error: {{ . }}</span>
-			{{ end }}
+		{{ with .GeneralError }}
+		<span class="error">Error: {{ . }}</span>
+		{{ end }}
 
-			<label for="begin-date">Begin Date (Required)</label>
-			<input type="date" name="begin-date" id="begin-date" required
+		{{ range $i, $billingPeriod := .BillingPeriods }}
+		<fieldset>
+			{{ $beginDateID := printf "begin-date-%d" $i }}
+			<label for="{{ $beginDateID }}">Begin Date (Required)</label>
+			<input type="date" name="begin-date" id="{{ $beginDateID }}" required
 				{{ with .BeginDate }} value="{{ . }}" {{ end }}>
 			{{ with .BeginDateError }}
-			<label class="error" for="begin-date">{{ . }}</label>
+			<label class="error" for="{{ $beginDateID }}">{{ . }}</label>
 			{{ end }}
 
-			<label for="end-date">End Date (Required)</label>
-			<input type="date" name="end-date" id="end-date" required
+			{{ $endDateID := printf "end-date-%d" $i }}
+			<label for="{{ $endDateID }}">End Date (Required)</label>
+			<input type="date" name="end-date" id="{{ $endDateID }}" required
 				{{ with .EndDate }} value="{{ . }}" {{ end }}>
 			{{ with .EndDateError }}
-			<label class="error" for="end-date">{{ . }}</label>
+			<label class="error" for="{{ $endDateID }}">{{ . }}</label>
+			{{ end }}
+
+			{{ $maxDayDiffID := printf "max-day-diff-%d" $i }}
+			<label for="{{ $maxDayDiffID }}">Maximum Difference in Days</label>
+			<input type="number" name="max-day-diff" id="{{ $maxDayDiffID }}"
+				{{ with .MaxDayDiff }} value="{{ . }}" {{ end }}>
+			{{ with .MaxDayDiffError }}
+			<label class="error" for="{{ $maxDayDiffID }}">{{ . }}</label>
+			{{ end }}
+
+			{{ $beginReadingValueID := printf "begin-reading-value-%d" $i }}
+			<label for="{{ $beginReadingValueID }}">Begin Reading Value (Required)</label>
+			<input type="number" step="0.001" name="begin-reading-value" id="{{ $beginReadingValueID }}" min="0" required
+				{{ with .BeginReadingValue }} value="{{ . }}" {{ end }}>
+			{{ with .BeginReadingValueError }}
+			<label class="error" for="{{ $beginReadingValueID }}">{{ . }}</label>
+			{{ end }}
+
+			{{ $endReadingValueID := printf "end-reading-value-%d" $i }}
+			<label for="{{ $endReadingValueID }}">End Reading Value (Required)</label>
+			<input type="number" step="0.001" name="end-reading-value" id="{{ $endReadingValueID }}" min="0" required
+				{{ with .EndReadingValue }} value="{{ . }}" {{ end }}>
+			{{ with .EndReadingValueError }}
+			<label class="error" for="{{ $endReadingValueID }}">{{ . }}</label>
+			{{ end }}
+
+			{{ $energyUnitPriceID := printf "energy-unit-price-%d" $i }}
+			<label for="{{ $energyUnitPriceID }}">Energy Unit Price (Required)</label>
+			<input type="number" step="0.001" name="energy-unit-price" id="{{ $energyUnitPriceID }}" min="0" required
+				{{ with .EnergyUnitPrice }} value="{{ . }}" {{ end }}>
+			{{ with .EnergyUnitPriceError }}
+			<label class="error" for="{{ $energyUnitPriceID }}">{{ . }}</label>
+			{{ end }}
+
+			{{ $servicePriceID := printf "service-price-%d" $i }}
+			<label for="{{ $servicePriceID }}">Service Price (Required)</label>
+			<input type="number" step="0.001" name="service-price" id="{{ $servicePriceID }}" min="0" required
+				{{ with .ServicePrice }} value="{{ . }}" {{ end }}>
+			{{ with .ServicePriceError }}
+			<label class="error" for="{{ $servicePriceID }}">{{ . }}</label>
 			{{ end }}
 		</fieldset>
 		{{ end }}
 
-		<input type="submit" value="Create">
+		<input type="submit" name="add-billing-period" value="Add Billing Period">
+		<input type="submit" name="create" value="Create">
 	</form>
 </main>
 {{ template "lower" }}

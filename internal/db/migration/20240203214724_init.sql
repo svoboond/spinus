@@ -3,52 +3,90 @@ CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE spinus_user (
-	id INT GENERATED ALWAYS AS IDENTITY, username VARCHAR(128) UNIQUE NOT NULL CHECK (LENGTH(TRIM(username)) >= 3), email VARCHAR(128) UNIQUE NOT NULL CHECK (email ~ '^[a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'), password VARCHAR(128) NOT NULL CHECK (LENGTH(password) >= 8),
+	id INT GENERATED ALWAYS AS IDENTITY,
+	username VARCHAR(128) UNIQUE NOT NULL CHECK (LENGTH(TRIM(username)) >= 3),
+	email VARCHAR(128) UNIQUE NOT NULL CHECK (email ~ '^[a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'),
+	password VARCHAR(128) NOT NULL CHECK (LENGTH(password) >= 8),
 	PRIMARY KEY(id)
 );
 
 CREATE TYPE energy AS ENUM (
 	'electricity',
-  	'gas',
-  	'water'
+	'gas',
+	'water'
 );
 CREATE TABLE main_meter (
 	id INT GENERATED ALWAYS AS IDENTITY,
-  	meter_id VARCHAR(64) NOT NULL CHECK (LENGTH(TRIM(meter_id)) >= 3),
-  	energy ENERGY NOT NULL,
-  	address VARCHAR(255) NOT NULL CHECK (LENGTH(TRIM(address)) >= 8),
-  	fk_user INT NOT NULL REFERENCES spinus_user(id),
-  	PRIMARY KEY(id)
+	meter_id VARCHAR(64) NOT NULL CHECK (LENGTH(TRIM(meter_id)) >= 3),
+	energy ENERGY NOT NULL,
+	address VARCHAR(255) NOT NULL CHECK (LENGTH(TRIM(address)) >= 8),
+	fk_user INT NOT NULL REFERENCES spinus_user(id),
+	PRIMARY KEY(id)
 );
 
 CREATE TABLE sub_meter (
 	id INT GENERATED ALWAYS AS IDENTITY,
-  	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
+	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
 	subid INT NOT NULL,
-  	meter_id VARCHAR(64) CHECK (LENGTH(TRIM(meter_id)) >= 3),
-  	fk_user INT NOT NULL REFERENCES spinus_user(id),
-  	PRIMARY KEY(id),
+	meter_id VARCHAR(64) CHECK (LENGTH(TRIM(meter_id)) >= 3),
+	fk_user INT NOT NULL REFERENCES spinus_user(id),
+	PRIMARY KEY(id),
 	UNIQUE(fk_main_meter, subid)
 );
 
 CREATE TABLE sub_meter_reading (
 	id INT GENERATED ALWAYS AS IDENTITY,
-  	fk_sub_meter INT NOT NULL REFERENCES sub_meter(id),
+	fk_sub_meter INT NOT NULL REFERENCES sub_meter(id),
 	subid INT NOT NULL,
 	reading_value DOUBLE PRECISION NOT NULL,
 	reading_date DATE NOT NULL,
-  	PRIMARY KEY(id),
+	PRIMARY KEY(id),
 	UNIQUE(fk_sub_meter, subid)
 );
 
 CREATE TABLE main_meter_billing (
 	id INT GENERATED ALWAYS AS IDENTITY,
-  	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
+	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
+	subid INT NOT NULL,
+	PRIMARY KEY(id),
+	UNIQUE(fk_main_meter, subid)
+);
+CREATE TABLE main_meter_billing_period (
+	id INT GENERATED ALWAYS AS IDENTITY,
+	fk_main_billing INT NOT NULL REFERENCES main_meter_billing(id),
 	subid INT NOT NULL,
 	begin_date DATE NOT NULL,
 	end_date DATE NOT NULL,
-  	PRIMARY KEY(id),
-	UNIQUE(fk_main_meter, subid)
+	max_day_diff INT DEFAULT 14,
+	begin_reading_value DOUBLE PRECISION NOT NULL,
+	end_reading_value DOUBLE PRECISION NOT NULL,
+	energy_unit_price DOUBLE PRECISION NOT NULL,
+	service_price DOUBLE PRECISION,
+	PRIMARY KEY(id),
+	UNIQUE(fk_main_billing, subid)
+);
+CREATE TABLE sub_meter_billing (
+	id INT GENERATED ALWAYS AS IDENTITY,
+	fk_sub_meter INT NOT NULL REFERENCES sub_meter(id),
+	fk_main_billing INT NOT NULL REFERENCES main_meter_billing(id),
+	subid INT NOT NULL,
+	energy_payment DOUBLE PRECISION NOT NULL,
+	service_payment DOUBLE PRECISION NOT NULL,
+	advance_payment DOUBLE PRECISION NOT NULL,
+	total_payment DOUBLE PRECISION NOT NULL,
+	PRIMARY KEY(id),
+	UNIQUE(fk_sub_meter, subid)
+);
+CREATE TABLE sub_meter_billing_period (
+	id INT GENERATED ALWAYS AS IDENTITY,
+	fk_sub_billing INT NOT NULL REFERENCES sub_meter_billing(id),
+	fk_main_billing_period INT NOT NULL REFERENCES main_meter_billing_period(id),
+	energy_consumption DOUBLE PRECISION,
+	energy_payment DOUBLE PRECISION NOT NULL,
+	service_payment DOUBLE PRECISION NOT NULL,
+	advance_payment DOUBLE PRECISION NOT NULL,
+	total_payment DOUBLE PRECISION NOT NULL,
+	PRIMARY KEY(id)
 );
 
 -- +goose Down
@@ -62,5 +100,9 @@ DROP TABLE main_meter;
 
 DROP TABLE sub_meter;
 
-DROP TABLE main_meter_reading;
 DROP TABLE sub_meter_reading;
+
+DROP TABLE main_meter_billing;
+DROP TABLE main_meter_billing_period;
+DROP TABLE sub_meter_billing;
+DROP TABLE sub_meter_billing_period;

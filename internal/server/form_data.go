@@ -42,3 +42,25 @@ type SubMeterReadingFormData struct {
 	ReadingDate       string
 	ReadingDateError  string
 }
+
+type MainMeterBillingPeriodFormData struct {
+	BeginDate              string
+	BeginDateError         string
+	EndDate                string
+	EndDateError           string
+	MaxDayDiff             string
+	MaxDayDiffError        string
+	BeginReadingValue      string
+	BeginReadingValueError string
+	EndReadingValue        string
+	EndReadingValueError   string
+	EnergyUnitPrice        string
+	EnergyUnitPriceError   string
+	ServicePrice           string
+	ServicePriceError      string
+}
+
+type MainMeterBillingFormData struct {
+	GeneralError   string
+	BillingPeriods []MainMeterBillingPeriodFormData
+}

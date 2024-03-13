@@ -83,6 +83,7 @@ func (s *Server) HandleGetLogIn(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "signUp"
+
 	formData := SignUpFormData{}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
@@ -638,5 +639,58 @@ func (s *Server) HandleGetMainMeterBillingList(w http.ResponseWriter, r *http.Re
 	}
 	mainMeterID := mainMeter.ID
 	s.renderTemplate(
-		w, r, tmplName, BillingListTmplData{Upper: MainMeterTmplData{ID: mainMeterID}})
+		w, r, tmplName,
+		MainMeterBillingListTmplData{Upper: MainMeterTmplData{ID: mainMeterID}},
+	)
+}
+
+func (s *Server) HandleGetMainMeterBillingCreate(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mainMeterBillingCreate"
+
+	ctx := r.Context()
+	mainMeter, ok := GetMainMeter(ctx)
+	if ok == false {
+		slog.Error("error getting main meter", "mainMeter", mainMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		return
+	}
+	s.renderTemplate(
+		w, r,
+		tmplName,
+		MainMeterBillingCreateTmplData{
+			MainMeterBillingFormData: MainMeterBillingFormData{
+				BillingPeriods: make([]MainMeterBillingPeriodFormData, 1)},
+			Upper: MainMeterTmplData{ID: mainMeter.ID},
+		},
+	)
+}
+
+func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mainMeterBillingCreate"
+
+	ctx := r.Context()
+	mainMeter, ok := GetMainMeter(ctx)
+	if ok == false {
+		slog.Error("error getting main meter", "mainMeter", mainMeter)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		return
+	}
+	tmplData := MainMeterBillingCreateTmplData{
+		MainMeterBillingFormData: MainMeterBillingFormData{
+			BillingPeriods: make([]MainMeterBillingPeriodFormData, 1)},
+		Upper: MainMeterTmplData{ID: mainMeter.ID},
+	}
+	// var formError bool
+	if err := r.ParseForm(); err != nil {
+		slog.Info("error parsing form", "err", err)
+		tmplData.GeneralError = "Bad request"
+		// formError = true
+		s.templates.Render(w, tmplName, tmplData)
+		return
+	}
+	beginDate := r.PostFormValue("begin-date")
+	addBillingPeriod := r.PostFormValue("add-billing-period")
+	slog.Info("hello", "beginDate", beginDate, "addBillingPeriod", addBillingPeriod)
+
+	s.renderTemplate(w, r, tmplName, tmplData)
 }
