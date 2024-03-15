@@ -87,7 +87,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	formData := SignUpFormData{}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
-		slog.Info("error parsing form", "err", err)
+		slog.Error("error parsing form", "err", err)
 		formData.GeneralError = "Bad request"
 		formError = true
 		s.templates.Render(w, tmplName, formData)
@@ -654,12 +654,13 @@ func (s *Server) HandleGetMainMeterBillingCreate(w http.ResponseWriter, r *http.
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
+	billingPeriods := []*MainMeterBillingPeriodFormData{NewMainMeterBillingPeriodFormData()}
 	s.renderTemplate(
 		w, r,
 		tmplName,
 		MainMeterBillingCreateTmplData{
 			MainMeterBillingFormData: MainMeterBillingFormData{
-				BillingPeriods: make([]MainMeterBillingPeriodFormData, 1)},
+				BillingPeriods: billingPeriods},
 			Upper: MainMeterTmplData{ID: mainMeter.ID},
 		},
 	)
@@ -675,27 +676,113 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
-	var billingPeriods []MainMeterBillingPeriodFormData
+
+	var mainMeterbillingPeriodForms []*MainMeterBillingPeriodFormData
 	tmplData := MainMeterBillingCreateTmplData{
-		MainMeterBillingFormData: MainMeterBillingFormData{BillingPeriods: billingPeriods},
-		Upper:                    MainMeterTmplData{ID: mainMeter.ID},
+		MainMeterBillingFormData: MainMeterBillingFormData{
+			BillingPeriods: mainMeterbillingPeriodForms},
+		Upper: MainMeterTmplData{ID: mainMeter.ID},
 	}
-	// var formError bool
+	var formError bool
 	if err := r.ParseForm(); err != nil {
-		slog.Info("error parsing form", "err", err)
+		slog.Error("error parsing form", "err", err)
 		tmplData.GeneralError = "Bad request"
-		// formError = true
+		formError = true
 		s.templates.Render(w, tmplName, tmplData)
 		return
 	}
-	for i, beginDate := range r.PostForm["begin-date"] {
-		billingPeriod := MainMeterBillingPeriodFormData{}
-		billingPeriods = append(billingPeriods, billingPeriod)
+
+	var addBillingPeriod bool
+	if r.PostFormValue("add-billing-period") != "" {
+		addBillingPeriod = true
 	}
-	beginDate := r.PostFormValue("begin-date")
-	addBillingPeriod := r.PostFormValue("add-billing-period")
-	maxDayDiff := r.PostForm["begin-date"]
-	slog.Info("hello", "beginDate", beginDate, "addBillingPeriod", addBillingPeriod, "maxDayDiff", maxDayDiff, "foo", len(maxDayDiff))
+	var removeBillingPeriod bool
+	if r.PostFormValue("remove-billing-period") != "" {
+		removeBillingPeriod = true
+	}
+	parse := true
+	if addBillingPeriod || removeBillingPeriod {
+		parse = false
+	}
+
+	beginDates := r.PostForm["begin-date"]
+	endDates := r.PostForm["end-date"]
+	maxDayDiffs := r.PostForm["max-day-diff"]
+	beginReadingValues := r.PostForm["begin-reading-value"]
+	endReadingValues := r.PostForm["end-reading-value"]
+	consumedEnergyPrices := r.PostForm["consumed-energy-price"]
+	servicePrices := r.PostForm["service-price"]
+	for i := 0; i < len(beginDates); i++ {
+		mainMeterBillingPeriodForm := NewMainMeterBillingPeriodFormData()
+		tmplData.BillingPeriods = append(
+			tmplData.BillingPeriods, mainMeterBillingPeriodForm)
+		beginDate := beginDates[i]
+		mainMeterBillingPeriodForm.BeginDate = beginDate
+		endDate := endDates[i]
+		mainMeterBillingPeriodForm.EndDate = endDate
+		maxDayDiff := maxDayDiffs[i]
+		mainMeterBillingPeriodForm.MaxDayDiff = maxDayDiff
+		beginReadingValue := beginReadingValues[i]
+		mainMeterBillingPeriodForm.BeginReadingValue = beginReadingValue
+		endReadingValue := endReadingValues[i]
+		mainMeterBillingPeriodForm.EndReadingValue = endReadingValue
+		consumedEnergyPrice := consumedEnergyPrices[i]
+		mainMeterBillingPeriodForm.ConsumedEnergyPrice = consumedEnergyPrice
+		servicePrice := servicePrices[i]
+		mainMeterBillingPeriodForm.ServicePrice = servicePrice
+		if parse {
+			_, err := parseDate(beginDate)
+			if err != nil {
+				mainMeterBillingPeriodForm.BeginDateError = err.Error()
+				formError = true
+			}
+			_, err = parseDate(endDate)
+			if err != nil {
+				mainMeterBillingPeriodForm.EndDateError = err.Error()
+				formError = true
+			}
+			_, err = parseMaxDayDiff(maxDayDiff)
+			if err != nil {
+				mainMeterBillingPeriodForm.MaxDayDiffError = err.Error()
+				formError = true
+			}
+			_, err = parseReadingValue(beginReadingValue)
+			if err != nil {
+				mainMeterBillingPeriodForm.BeginReadingValueError = err.Error()
+				formError = true
+			}
+			_, err = parseReadingValue(endReadingValue)
+			if err != nil {
+				mainMeterBillingPeriodForm.EndReadingValueError = err.Error()
+				formError = true
+			}
+			_, err = parsePrice(consumedEnergyPrice)
+			if err != nil {
+				mainMeterBillingPeriodForm.ConsumedEnergyPriceError = err.Error()
+				formError = true
+			}
+			_, err = parsePrice(servicePrice)
+			if err != nil {
+				mainMeterBillingPeriodForm.ServicePriceError = err.Error()
+				formError = true
+			}
+		}
+	}
+	if addBillingPeriod {
+		mainMeterBillingPeriodForm := NewMainMeterBillingPeriodFormData()
+		tmplData.BillingPeriods = append(
+			tmplData.BillingPeriods, mainMeterBillingPeriodForm)
+	} else if removeBillingPeriod {
+		billingPeriodLen := len(tmplData.BillingPeriods)
+		if billingPeriodLen > 1 {
+			tmplData.BillingPeriods = tmplData.BillingPeriods[:billingPeriodLen-1]
+		}
+	}
+
+	if formError {
+		s.renderTemplate(w, r, tmplName, tmplData)
+		return
+	}
 
 	s.renderTemplate(w, r, tmplName, tmplData)
 }

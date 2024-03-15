@@ -117,12 +117,15 @@ func parseSubMeterID(meterID string) (pgtype.Text, error) {
 	}
 }
 
-func parseReadingValue(readingValue string) (float64, error) {
-	rv, err := strconv.ParseFloat(readingValue, 64)
+func parseReadingValue(s string) (float64, error) {
+	v, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return 0.0, errors.New("Enter valid reading value.")
 	}
-	return float64(rv), nil
+	if v < 0 {
+		return 0.0, errors.New("Enter reading value that is no less than 0.")
+	}
+	return float64(v), nil
 }
 
 func parseDate(date string) (pgtype.Date, error) {
@@ -134,4 +137,30 @@ func parseDate(date string) (pgtype.Date, error) {
 	parsedDate.Time = t
 	parsedDate.Valid = true
 	return parsedDate, nil
+}
+
+func parseMaxDayDiff(s string) (uint8, error) {
+	if s == "" {
+		return 0, errors.New("Enter maximum day difference.")
+	} else {
+		maxDayDiff, err := strconv.Atoi(s)
+		if err != nil {
+			return 0, errors.New("Enter valid maximum day difference.")
+		}
+		if maxDayDiff < 0 || maxDayDiff > 255 {
+			return 0, errors.New("Enter maximum day difference between 0 and 255.")
+		}
+		return uint8(maxDayDiff), nil
+	}
+}
+
+func parsePrice(s string) (float64, error) {
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0.0, errors.New("Enter valid price.")
+	}
+	if v < 0 {
+		return 0.0, errors.New("Enter price that is no less than 0.")
+	}
+	return float64(v), nil
 }
