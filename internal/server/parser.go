@@ -139,28 +139,48 @@ func parseDate(date string) (pgtype.Date, error) {
 	return parsedDate, nil
 }
 
-func parseMaxDayDiff(s string) (uint8, error) {
+func parseMaxDayDiff(s string) (pgtype.Int4, error) {
+	var v pgtype.Int4
 	if s == "" {
-		return 0, errors.New("Enter maximum day difference.")
+		return v, errors.New("Enter maximum day difference.")
 	} else {
 		maxDayDiff, err := strconv.Atoi(s)
 		if err != nil {
-			return 0, errors.New("Enter valid maximum day difference.")
+			return v, errors.New("Enter valid maximum day difference.")
 		}
 		if maxDayDiff < 0 || maxDayDiff > 255 {
-			return 0, errors.New("Enter maximum day difference between 0 and 255.")
+			return v, errors.New("Enter maximum day difference between 0 and 255.")
 		}
-		return uint8(maxDayDiff), nil
+		v.Int32 = int32(maxDayDiff)
+		v.Valid = true
+		return v, nil
 	}
 }
 
-func parsePrice(s string) (float64, error) {
+func parseConsumedEnergyPrice(s string) (float64, error) {
 	v, err := strconv.ParseFloat(s, 64)
 	if err != nil {
-		return 0.0, errors.New("Enter valid price.")
+		return 0.0, errors.New("Enter valid consumed energy price.")
 	}
 	if v < 0 {
-		return 0.0, errors.New("Enter price that is no less than 0.")
+		return 0.0, errors.New("Enter consumed energy price that is no less than 0.")
 	}
 	return float64(v), nil
+}
+
+func parseServicePrice(s string) (pgtype.Float8, error) {
+	var v pgtype.Float8
+	if s == "" {
+		return v, nil
+	}
+	servicePrice, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return v, errors.New("Enter valid service price.")
+	}
+	if servicePrice < 0 {
+		return v, errors.New("Enter service price that is no less than 0.")
+	}
+	v.Float64 = servicePrice
+	v.Valid = true
+	return v, nil
 }

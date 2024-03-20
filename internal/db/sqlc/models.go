@@ -79,16 +79,16 @@ type MainMeterBilling struct {
 }
 
 type MainMeterBillingPeriod struct {
-	ID                int32
-	FkMainBilling     int32
-	Subid             int32
-	BeginDate         pgtype.Date
-	EndDate           pgtype.Date
-	MaxDayDiff        pgtype.Int4
-	BeginReadingValue float64
-	EndReadingValue   float64
-	EnergyUnitPrice   interface{}
-	ServicePrice      pgtype.Float8
+	ID                  int32
+	FkMainBilling       int32
+	Subid               int32
+	BeginDate           pgtype.Date
+	EndDate             pgtype.Date
+	MaxDayDiff          pgtype.Int4
+	BeginReadingValue   float64
+	EndReadingValue     float64
+	ConsumedEnergyPrice float64
+	ServicePrice        pgtype.Float8
 }
 
 type SpinusUser struct {
@@ -107,25 +107,25 @@ type SubMeter struct {
 }
 
 type SubMeterBilling struct {
-	ID             int32
-	FkSubMeter     int32
-	FkMainBilling  int32
-	Subid          int32
-	EnergyPayment  float64
-	ServicePayment float64
-	AdvancePayment float64
-	TotalPayment   float64
+	ID                    int32
+	FkSubMeter            int32
+	FkMainBilling         int32
+	Subid                 int32
+	ConsumedEnergyPayment float64
+	ServicePayment        float64
+	AdvancePayment        float64
+	TotalPayment          float64
 }
 
 type SubMeterBillingPeriod struct {
-	ID                  int32
-	FkSubBilling        int32
-	FkMainBillingPeriod int32
-	EnergyConsumption   pgtype.Float8
-	EnergyPayment       float64
-	ServicePayment      float64
-	AdvancePayment      float64
-	TotalPayment        float64
+	ID                    int32
+	FkSubBilling          int32
+	FkMainBillingPeriod   int32
+	EnergyConsumption     pgtype.Float8
+	ConsumedEnergyPayment float64
+	ServicePayment        float64
+	AdvancePayment        float64
+	TotalPayment          float64
 }
 
 type SubMeterReading struct {
