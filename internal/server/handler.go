@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
@@ -739,7 +740,25 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 				mainMeterBillingPeriods, mainMeterBillingPeriod)
 			parsedBeginDate, err := parseDate(beginDate)
 			if err == nil {
-				mainMeterBillingPeriod.BeginDate = parsedBeginDate
+				if i > 0 {
+					previousEndDate :=
+						mainMeterBillingPeriods[i-1].EndDate
+					if previousEndDate.Valid {
+						if previousEndDate.Time != parsedBeginDate.Time {
+							mainMeterBillingPeriodForm.BeginDateError =
+								"Begin date must be the same as " +
+									"previous billing " +
+									"period's end date."
+							formError = true
+						} else {
+							mainMeterBillingPeriod.BeginDate =
+								parsedBeginDate
+						}
+
+					}
+				} else {
+					mainMeterBillingPeriod.BeginDate = parsedBeginDate
+				}
 			} else {
 				mainMeterBillingPeriodForm.BeginDateError = err.Error()
 				formError = true
@@ -775,7 +794,8 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 			parsedConsumedEnergyPrice, err := parseConsumedEnergyPrice(
 				consumedEnergyPrice)
 			if err == nil {
-				mainMeterBillingPeriod.ConsumedEnergyPrice = (parsedConsumedEnergyPrice)
+				mainMeterBillingPeriod.ConsumedEnergyPrice =
+					parsedConsumedEnergyPrice
 			} else {
 				mainMeterBillingPeriodForm.ConsumedEnergyPriceError = err.Error()
 				formError = true
@@ -793,11 +813,15 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		mainMeterBillingPeriodForm := NewMainMeterBillingPeriodFormData()
 		tmplData.BillingPeriods = append(
 			tmplData.BillingPeriods, mainMeterBillingPeriodForm)
+		s.renderTemplate(w, r, tmplName, tmplData)
+		return
 	} else if removeBillingPeriod {
-		billingPeriodLen := len(tmplData.BillingPeriods)
-		if billingPeriodLen > 1 {
-			tmplData.BillingPeriods = tmplData.BillingPeriods[:billingPeriodLen-1]
+		billingPeriodsLen := len(tmplData.BillingPeriods)
+		if billingPeriodsLen > 1 {
+			tmplData.BillingPeriods = tmplData.BillingPeriods[:billingPeriodsLen-1]
 		}
+		s.renderTemplate(w, r, tmplName, tmplData)
+		return
 	}
 
 	if formError {
@@ -806,7 +830,6 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 	}
 
 	subMeterReadings, err := s.queries.GetSubMeterReadings(r.Context(), mainMeterID)
-	slog.Info("hello", "subMeterReadings", subMeterReadings, "error", err) // TODO
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -815,6 +838,88 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 	if len(subMeterReadings) == 0 {
 		tmplData.GeneralError = "There is no sub meter."
 		s.renderTemplate(w, r, tmplName, tmplData)
+		return
+	}
+
+	billingPeriodsLen := len(mainMeterBillingPeriods)
+	if billingPeriodsLen == 0 {
+		tmplData.GeneralError = "No billing period provided."
+		s.renderTemplate(w, r, tmplName, tmplData)
+		return
+	}
+	billingPeriod := mainMeterBillingPeriods[1]
+	breakPoint := billingPeriod.BeginDate.Time
+	maxDayDiff := int(billingPeriod.MaxDayDiff.Int32)
+	breakPointMin := breakPoint.AddDate(0, 0, -maxDayDiff)
+	breakPointMax := breakPoint.AddDate(0, 0, maxDayDiff)
+	lastSubMeterReadings := make(map[int32]*Reading)
+	breakPointReadingValues := make(map[time.Time]map[int32]float64)
+	for _, subMeterReading := range subMeterReadings {
+		readingDate := subMeterReading.ReadingDate
+		if readingDate.Valid == false {
+			continue
+		}
+		subMeterID := subMeterReading.ID
+		readingTime := readingDate.Time
+		lastSubMeterReadings[subMeterID] = &Reading{
+			Value: subMeterReading.ReadingValue.Float64,
+			Time:  readingTime,
+		}
+		if readingTime.Before(breakPointMin) {
+			continue
+		} else if readingTime.Compare(breakPointMax) <= 0 {
+			_, ok := breakPointReadingValues[breakPoint]
+			if ok == false {
+				breakPointReadingValues[breakPoint] = make(map[int32]float64)
+			}
+			reading, ok := breakPointReadingValues[breakPoint][subMeterID]
+			if ok == true {
+
+			}
+		}
+
+	}
+	lastBillingPeriod := mainMeterBillingPeriods[billingPeriodsLen-1]
+	endDate := lastBillingPeriod.EndDate.Time
+	minEndDate := endDate.AddDate(0, 0, -int(lastBillingPeriod.MaxDayDiff.Int32))
+	readingsWithEndValue := make(map[int32][]*Reading)
+	readingsWithoutEndValue := make(map[int32][]*Reading)
+	for _, subMeterReading := range subMeterReadings {
+		readingDate := subMeterReading.ReadingDate
+		readingTime := readingDate.Time
+		subMeterID := subMeterReading.ID
+		// TODO - add checking valid reading
+		if readingDate.Valid && readingTime.Before(minEndDate) {
+			readings := readingsWithoutEndValue[subMeterID]
+			readingsWithoutEndValue[subMeterID] = append(
+				readings,
+				&Reading{
+					ReadingValue: subMeterReading.ReadingValue.Float64,
+					ReadingTime:  readingTime,
+				},
+			)
+		} else {
+			readings := readingsWithEndValue[subMeterID]
+			readingsWithEndValue[subMeterID] = append(
+				readings,
+				&Reading{
+					ReadingValue: subMeterReading.ReadingValue.Float64,
+					ReadingTime:  readingTime,
+				},
+			)
+		}
+	}
+	slog.Info("hello", "readingsWithEndValue", readingsWithEndValue, "readingsWithoutEndValue", readingsWithoutEndValue) // TODO
+	if len(readingsWithoutEndValue) != 0 {
+	} else {
+		for mainMeterBillingPeriod := range mainMeterBillingPeriods {
+			for subMeterID, readings := range readingsWithEndValue {
+				for i, reading := range readings {
+					if i != 0 {
+					}
+				}
+			}
+		}
 	}
 
 	s.renderTemplate(w, r, tmplName, tmplData)

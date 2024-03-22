@@ -66,6 +66,55 @@ func (q *Queries) CreateMainMeterBillingPeriod(ctx context.Context, arg CreateMa
 	return i, err
 }
 
+const createSubMeterBillingPeriod = `-- name: CreateSubMeterBillingPeriod :one
+INSERT INTO sub_meter_billing_period (
+	fk_sub_billing,
+	fk_main_billing_period,
+	energy_consumption,
+	consumed_energy_payment,
+	service_payment,
+	advance_payment,
+	total_payment
+) VALUES (
+	$1, $2, $3, $4, $5, $6, $7
+)
+RETURNING id, fk_sub_billing, fk_main_billing_period, energy_consumption, consumed_energy_payment, service_payment, advance_payment, total_payment
+`
+
+type CreateSubMeterBillingPeriodParams struct {
+	FkSubBilling          int32
+	FkMainBillingPeriod   int32
+	EnergyConsumption     float64
+	ConsumedEnergyPayment float64
+	ServicePayment        float64
+	AdvancePayment        float64
+	TotalPayment          float64
+}
+
+func (q *Queries) CreateSubMeterBillingPeriod(ctx context.Context, arg CreateSubMeterBillingPeriodParams) (SubMeterBillingPeriod, error) {
+	row := q.db.QueryRow(ctx, createSubMeterBillingPeriod,
+		arg.FkSubBilling,
+		arg.FkMainBillingPeriod,
+		arg.EnergyConsumption,
+		arg.ConsumedEnergyPayment,
+		arg.ServicePayment,
+		arg.AdvancePayment,
+		arg.TotalPayment,
+	)
+	var i SubMeterBillingPeriod
+	err := row.Scan(
+		&i.ID,
+		&i.FkSubBilling,
+		&i.FkMainBillingPeriod,
+		&i.EnergyConsumption,
+		&i.ConsumedEnergyPayment,
+		&i.ServicePayment,
+		&i.AdvancePayment,
+		&i.TotalPayment,
+	)
+	return i, err
+}
+
 const getSubMeterReadings = `-- name: GetSubMeterReadings :many
 SELECT
 	sub_meter.id,
@@ -75,7 +124,7 @@ FROM sub_meter
 LEFT JOIN sub_meter_reading
 	ON sub_meter.id = sub_meter_reading.fk_sub_meter
 WHERE fk_main_meter = $1
-ORDER BY reading_date DESC
+ORDER BY reading_date ASC
 `
 
 type GetSubMeterReadingsRow struct {

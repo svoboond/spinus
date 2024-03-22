@@ -81,7 +81,7 @@ CREATE TABLE sub_meter_billing_period (
 	id INT GENERATED ALWAYS AS IDENTITY,
 	fk_sub_billing INT NOT NULL REFERENCES sub_meter_billing(id),
 	fk_main_billing_period INT NOT NULL REFERENCES main_meter_billing_period(id),
-	energy_consumption DOUBLE PRECISION,
+	energy_consumption DOUBLE PRECISION NOT NULL,
 	consumed_energy_payment DOUBLE PRECISION NOT NULL,
 	service_payment DOUBLE PRECISION NOT NULL,
 	advance_payment DOUBLE PRECISION NOT NULL,

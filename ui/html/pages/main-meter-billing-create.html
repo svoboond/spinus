@@ -8,7 +8,7 @@
 
 		{{ range $i, $billingPeriod := .BillingPeriods }}
 		<fieldset>
-			<h3>Billing Period {{ $i }}</h3>
+			<h3>Billing Period {{ len (printf " %*s" $i "") }}</h3>
 
 			{{ $beginDateID := printf "begin-date-%d" $i }}
 			<label for="{{ $beginDateID }}">Begin Date (Required)</label>

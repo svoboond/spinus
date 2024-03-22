@@ -121,7 +121,7 @@ type SubMeterBillingPeriod struct {
 	ID                    int32
 	FkSubBilling          int32
 	FkMainBillingPeriod   int32
-	EnergyConsumption     pgtype.Float8
+	EnergyConsumption     float64
 	ConsumedEnergyPayment float64
 	ServicePayment        float64
 	AdvancePayment        float64
