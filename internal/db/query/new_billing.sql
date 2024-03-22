@@ -7,7 +7,9 @@ FROM sub_meter
 LEFT JOIN sub_meter_reading
 	ON sub_meter.id = sub_meter_reading.fk_sub_meter
 WHERE fk_main_meter = $1
-ORDER BY reading_date ASC;
+ORDER BY
+	sub_meter.id ASC,
+	reading_date ASC;
 
 -- name: CreateMainMeterBillingPeriod :one
 INSERT INTO main_meter_billing_period (
