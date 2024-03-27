@@ -117,26 +117,64 @@ func (q *Queries) CreateSubMeterBillingPeriod(ctx context.Context, arg CreateSub
 
 const getSubMeterReadings = `-- name: GetSubMeterReadings :many
 SELECT
-	sub_meter.id,
+	later_reading.id,
+	sub_meter_reading.reading_value,
+	later_reading.reading_date
+FROM (
+	SELECT		sub_meter.id,
+			min(sub_meter_reading.reading_date) AS reading_date
+	FROM		sub_meter
+	JOIN		sub_meter_reading
+	ON		sub_meter.id = sub_meter_reading.fk_sub_meter
+	WHERE		sub_meter.fk_main_meter = $1 AND
+			sub_meter_reading.reading_date > $2
+	GROUP BY	sub_meter.id
+) later_reading
+JOIN	sub_meter_reading
+ON	later_reading.id = sub_meter_reading.id AND
+	later_reading.reading_date = sub_meter_reading.reading_date
+UNION
+SELECT	sub_meter.id,
 	sub_meter_reading.reading_value,
 	sub_meter_reading.reading_date
-FROM sub_meter
-LEFT JOIN sub_meter_reading
-	ON sub_meter.id = sub_meter_reading.fk_sub_meter
-WHERE fk_main_meter = $1
-ORDER BY
-	sub_meter.id ASC,
-	reading_date ASC
+FROM	sub_meter
+JOIN	sub_meter_reading
+ON	sub_meter.id = sub_meter_reading.fk_sub_meter
+WHERE	sub_meter.fk_main_meter = $1 AND
+	sub_meter_reading.reading_date BETWEEN $3 AND $2
+UNION
+SELECT		earlier_reading.id,
+		sub_meter_reading.reading_value,
+		earlier_reading.reading_date
+FROM (
+	SELECT		sub_meter.id,
+			max(sub_meter_reading.reading_date) AS reading_date
+	FROM		sub_meter
+	JOIN		sub_meter_reading
+	ON		sub_meter.id = sub_meter_reading.fk_sub_meter
+	WHERE		sub_meter.fk_main_meter = $1 AND reading_date < $3
+	GROUP BY	sub_meter.id
+) earlier_reading
+RIGHT JOIN	sub_meter_reading
+ON		earlier_reading.id = sub_meter_reading.id AND
+		earlier_reading.reading_date = sub_meter_reading.reading_date
+ORDER BY 	reading_date DESC NULLS LAST
 `
+
+type GetSubMeterReadingsParams struct {
+	FkMainMeter int32
+	DateMax     pgtype.Date
+	DateMin     pgtype.Date
+}
 
 type GetSubMeterReadingsRow struct {
 	ID           int32
-	ReadingValue pgtype.Float8
-	ReadingDate  pgtype.Date
+	ReadingValue float64
+	ReadingDate  interface{}
 }
 
-func (q *Queries) GetSubMeterReadings(ctx context.Context, fkMainMeter int32) ([]GetSubMeterReadingsRow, error) {
-	rows, err := q.db.Query(ctx, getSubMeterReadings, fkMainMeter)
+func (q *Queries) GetSubMeterReadings(ctx context.Context, arg GetSubMeterReadingsParams) ([]GetSubMeterReadingsRow, error) {
+	rows, err := q.db.Query(ctx, getSubMeterReadings, arg.FkMainMeter, arg.DateMax, arg.DateMin)
 	if err != nil {
 		return nil, err
 	}

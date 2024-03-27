@@ -41,7 +41,8 @@ CREATE TABLE sub_meter_reading (
 	reading_value DOUBLE PRECISION NOT NULL,
 	reading_date DATE NOT NULL,
 	PRIMARY KEY(id),
-	UNIQUE(fk_sub_meter, subid)
+	UNIQUE(fk_sub_meter, subid),
+	UNIQUE(fk_sub_meter, reading_date)
 );
 
 CREATE TABLE main_meter_billing (

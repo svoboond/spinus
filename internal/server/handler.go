@@ -606,6 +606,7 @@ func (s *Server) HandlePostSubMeterReadingCreate(w http.ResponseWriter, r *http.
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}
+	// TODO - check that reading for the given sub meter and date does not exists
 	_, err = s.queries.CreateSubMeterReading(
 		ctx,
 		spinusdb.CreateSubMeterReadingParams{
@@ -879,65 +880,65 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	readingsLen := len(subMeterReadings)
-	if readingsLen == 0 {
-		tmplData.GeneralError = "There is no sub meter."
-		s.renderTemplate(w, r, tmplName, tmplData)
-		return
-	}
+	// readingsLen := len(subMeterReadings)
+	// if readingsLen == 0 {
+	// 	tmplData.GeneralError = "There is no sub meter."
+	// 	s.renderTemplate(w, r, tmplName, tmplData)
+	// 	return
+	// }
 
-	billingPeriodsLen = len(mainMeterBillingPeriods)
-	if billingPeriodsLen == 0 {
-		tmplData.GeneralError = "No billing period provided."
-		s.renderTemplate(w, r, tmplName, tmplData)
-		return
-	}
-	var additionalBreakPoints []time.Time
-	breakPointsLen := len(breakPoints)
-	previousSubMeterReading := subMeterReadings[0]
-	breakPointReadings := make(map[time.Time]map[int32]*Reading)
-	for _, subMeterReading := range subMeterReadings {
-		readingDate := subMeterReading.ReadingDate
-		if readingDate.Valid == false {
-			previousSubMeterReading = subMeterReading
-			continue
-		}
-		subMeterID := subMeterReading.ID
-		readingTime := readingDate.Time
-		reading := &Reading{
-			Value: subMeterReading.ReadingValue.Float64,
-			Time:  readingTime,
-		}
-		for i, breakPoint := range breakPoints {
-			breakPointMin := breakPoint[0]
-			breakPointActual := breakPoint[1]
-			breakPointMax := breakPoint[2]
-			if readingTime.Before(breakPointMin) || readingTime.After(breakPointMax) {
-				continue
-			}
-			_, ok := breakPointReadings[breakPointActual]
-			if ok == false {
-				breakPointReadings[breakPointActual] = make(map[int32]*Reading)
-			}
-			previousReading, ok := breakPointReadings[breakPointActual][subMeterID]
-			if ok == false {
-				breakPointReadings[breakPointActual][subMeterID] = reading
-			} else if breakPointActual.Sub(readingTime) <=
-				breakPointActual.Sub(previousReading.Time) {
+	// billingPeriodsLen = len(mainMeterBillingPeriods)
+	// if billingPeriodsLen == 0 {
+	// 	tmplData.GeneralError = "No billing period provided."
+	// 	s.renderTemplate(w, r, tmplName, tmplData)
+	// 	return
+	// }
+	// var additionalBreakPoints []time.Time
+	// breakPointsLen := len(breakPoints)
+	// previousSubMeterReading := subMeterReadings[0]
+	// breakPointReadings := make(map[time.Time]map[int32]*Reading)
+	// for _, subMeterReading := range subMeterReadings {
+	// 	readingDate := subMeterReading.ReadingDate
+	// 	if readingDate.Valid == false {
+	// 		previousSubMeterReading = subMeterReading
+	// 		continue
+	// 	}
+	// 	subMeterID := subMeterReading.ID
+	// 	readingTime := readingDate.Time
+	// 	reading := &Reading{
+	// 		Value: subMeterReading.ReadingValue.Float64,
+	// 		Time:  readingTime,
+	// 	}
+	// 	for i, breakPoint := range breakPoints {
+	// 		breakPointMin := breakPoint[0]
+	// 		breakPointActual := breakPoint[1]
+	// 		breakPointMax := breakPoint[2]
+	// 		if readingTime.Before(breakPointMin) || readingTime.After(breakPointMax) {
+	// 			continue
+	// 		}
+	// 		_, ok := breakPointReadings[breakPointActual]
+	// 		if ok == false {
+	// 			breakPointReadings[breakPointActual] = make(map[int32]*Reading)
+	// 		}
+	// 		previousReading, ok := breakPointReadings[breakPointActual][subMeterID]
+	// 		if ok == false {
+	// 			breakPointReadings[breakPointActual][subMeterID] = reading
+	// 		} else if breakPointActual.Sub(readingTime) <=
+	// 			breakPointActual.Sub(previousReading.Time) {
 
-				breakPointReadings[breakPointActual][subMeterID] = reading
-			}
+	// 			breakPointReadings[breakPointActual][subMeterID] = reading
+	// 		}
 
-			if i == breakPointsLen &&
-				subMeterID != previousSubMeterReading.ID &&
-				previousSubMeterReading.ReadingDate.Valid {
+	// 		if i == breakPointsLen &&
+	// 			subMeterID != previousSubMeterReading.ID &&
+	// 			previousSubMeterReading.ReadingDate.Valid {
 
-				additionalBreakPoints = append(
-					additionalBreakPoints, breakPointActual)
-			}
-		}
-		previousSubMeterReading = subMeterReading
-	}
+	// 			additionalBreakPoints = append(
+	// 				additionalBreakPoints, breakPointActual)
+	// 		}
+	// 	}
+	// 	previousSubMeterReading = subMeterReading
+	// }
 
 	s.renderTemplate(w, r, tmplName, tmplData)
 }
