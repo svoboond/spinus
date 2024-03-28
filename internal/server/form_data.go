@@ -48,8 +48,6 @@ type MainMeterBillingPeriodFormData struct {
 	BeginDateError           string
 	EndDate                  string
 	EndDateError             string
-	MaxDayDiff               string
-	MaxDayDiffError          string
 	BeginReadingValue        string
 	BeginReadingValueError   string
 	EndReadingValue          string
@@ -60,11 +58,16 @@ type MainMeterBillingPeriodFormData struct {
 	ServicePriceError        string
 }
 
-func NewMainMeterBillingPeriodFormData() *MainMeterBillingPeriodFormData {
-	return &MainMeterBillingPeriodFormData{MaxDayDiff: "14"}
+func NewMainMeterBillingFormData() MainMeterBillingFormData {
+	return MainMeterBillingFormData{
+		MaxDayDiff:     "14",
+		BillingPeriods: []*MainMeterBillingPeriodFormData{{}},
+	}
 }
 
 type MainMeterBillingFormData struct {
-	GeneralError   string
-	BillingPeriods []*MainMeterBillingPeriodFormData
+	GeneralError    string
+	MaxDayDiff      string
+	MaxDayDiffError string
+	BillingPeriods  []*MainMeterBillingPeriodFormData
 }

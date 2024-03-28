@@ -17,22 +17,20 @@ INSERT INTO main_meter_billing_period (
 	subid,
 	begin_date,
 	end_date,
-	max_day_diff,
 	begin_reading_value,
 	end_reading_value,
 	consumed_energy_price,
 	service_price
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7, $8
+) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7
 	FROM main_meter_billing_period
 	WHERE fk_main_billing = $1
-RETURNING id, fk_main_billing, subid, begin_date, end_date, max_day_diff, begin_reading_value, end_reading_value, consumed_energy_price, service_price
+RETURNING id, fk_main_billing, subid, begin_date, end_date, begin_reading_value, end_reading_value, consumed_energy_price, service_price
 `
 
 type CreateMainMeterBillingPeriodParams struct {
 	FkMainBilling       int32
 	BeginDate           pgtype.Date
 	EndDate             pgtype.Date
-	MaxDayDiff          pgtype.Int4
 	BeginReadingValue   float64
 	EndReadingValue     float64
 	ConsumedEnergyPrice float64
@@ -44,7 +42,6 @@ func (q *Queries) CreateMainMeterBillingPeriod(ctx context.Context, arg CreateMa
 		arg.FkMainBilling,
 		arg.BeginDate,
 		arg.EndDate,
-		arg.MaxDayDiff,
 		arg.BeginReadingValue,
 		arg.EndReadingValue,
 		arg.ConsumedEnergyPrice,
@@ -57,7 +54,6 @@ func (q *Queries) CreateMainMeterBillingPeriod(ctx context.Context, arg CreateMa
 		&i.Subid,
 		&i.BeginDate,
 		&i.EndDate,
-		&i.MaxDayDiff,
 		&i.BeginReadingValue,
 		&i.EndReadingValue,
 		&i.ConsumedEnergyPrice,
@@ -170,7 +166,7 @@ type GetSubMeterReadingsParams struct {
 type GetSubMeterReadingsRow struct {
 	ID           int32
 	ReadingValue float64
-	ReadingDate  interface{}
+	ReadingDate  pgtype.Date
 }
 
 func (q *Queries) GetSubMeterReadings(ctx context.Context, arg GetSubMeterReadingsParams) ([]GetSubMeterReadingsRow, error) {

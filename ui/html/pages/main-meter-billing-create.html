@@ -6,6 +6,13 @@
 		<span class="error">Error: {{ . }}</span>
 		{{ end }}
 
+		<label for="max-day-diff">Maximum Day Difference (Required)</label>
+		<input type="number" name="max-day-diff" id="max-day-diff"
+			min="0" max="255" {{ with .MaxDayDiff }} value="{{ . }}" {{ end }}>
+		{{ with .MaxDayDiffError }}
+		<label class="error" for="max-day-diff">{{ . }}</label>
+		{{ end }}
+
 		{{ range $i, $billingPeriod := .BillingPeriods }}
 		<fieldset>
 			<h3>Billing Period {{ len (printf " %*s" $i "") }}</h3>
@@ -24,14 +31,6 @@
 				{{ with .EndDate }} value="{{ . }}" {{ end }}>
 			{{ with .EndDateError }}
 			<label class="error" for="{{ $endDateID }}">{{ . }}</label>
-			{{ end }}
-
-			{{ $maxDayDiffID := printf "max-day-diff-%d" $i }}
-			<label for="{{ $maxDayDiffID }}">Maximum Day Difference (Required)</label>
-			<input type="number" name="max-day-diff" id="{{ $maxDayDiffID }}"
-				min="0" max="255" {{ with .MaxDayDiff }} value="{{ . }}" {{ end }}>
-			{{ with .MaxDayDiffError }}
-			<label class="error" for="{{ $maxDayDiffID }}">{{ . }}</label>
 			{{ end }}
 
 			{{ $beginReadingValueID := printf "begin-reading-value-%d" $i }}

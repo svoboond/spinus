@@ -6,4 +6,7 @@ COPY . ./
 RUN go build -o spinus-sqlc-generate ./tools/sqlc
 
 
+FROM debian:stable-slim
+WORKDIR /app
+COPY --from=builder /app /app
 CMD ["sleep", "infinity"]

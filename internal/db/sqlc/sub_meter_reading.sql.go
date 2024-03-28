@@ -39,6 +39,24 @@ func (q *Queries) CreateSubMeterReading(ctx context.Context, arg CreateSubMeterR
 	return i, err
 }
 
+const getSubMeterReadingForDate = `-- name: GetSubMeterReadingForDate :one
+SELECT 1 FROM sub_meter_reading
+WHERE fk_sub_meter = $1 AND reading_date = $2
+LIMIT 1
+`
+
+type GetSubMeterReadingForDateParams struct {
+	FkSubMeter  int32
+	ReadingDate pgtype.Date
+}
+
+func (q *Queries) GetSubMeterReadingForDate(ctx context.Context, arg GetSubMeterReadingForDateParams) (int32, error) {
+	row := q.db.QueryRow(ctx, getSubMeterReadingForDate, arg.FkSubMeter, arg.ReadingDate)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const listSubMeterReadings = `-- name: ListSubMeterReadings :many
 SELECT id, fk_sub_meter, subid, reading_value, reading_date FROM sub_meter_reading
 WHERE fk_sub_meter = $1

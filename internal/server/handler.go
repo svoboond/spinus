@@ -594,9 +594,25 @@ func (s *Server) HandlePostSubMeterReadingCreate(w http.ResponseWriter, r *http.
 		formError = true
 	}
 
+	subMeterID := subMeter.ID
 	readingDate := r.PostFormValue("reading-date")
 	tmplData.ReadingDate = readingDate
 	parsedReadingDate, err := parseDate(readingDate)
+	if err == nil {
+		_, err = s.queries.GetSubMeterReadingForDate(
+			ctx,
+			spinusdb.GetSubMeterReadingForDateParams{
+				FkSubMeter:  subMeterID,
+				ReadingDate: parsedReadingDate,
+			})
+		if err == nil {
+			tmplData.ReadingDateError = "Reading for the given date already exists."
+			formError = true
+		} else if err != pgx.ErrNoRows {
+			s.HandleInternalServerError(w, r, err)
+			return
+		}
+	}
 	if err != nil {
 		tmplData.ReadingDateError = err.Error()
 		formError = true
@@ -606,7 +622,7 @@ func (s *Server) HandlePostSubMeterReadingCreate(w http.ResponseWriter, r *http.
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}
-	// TODO - check that reading for the given sub meter and date does not exists
+
 	_, err = s.queries.CreateSubMeterReading(
 		ctx,
 		spinusdb.CreateSubMeterReadingParams{
@@ -656,14 +672,12 @@ func (s *Server) HandleGetMainMeterBillingCreate(w http.ResponseWriter, r *http.
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
-	billingPeriods := []*MainMeterBillingPeriodFormData{NewMainMeterBillingPeriodFormData()}
 	s.renderTemplate(
 		w, r,
 		tmplName,
 		MainMeterBillingCreateTmplData{
-			MainMeterBillingFormData: MainMeterBillingFormData{
-				BillingPeriods: billingPeriods},
-			Upper: MainMeterTmplData{ID: mainMeter.ID},
+			MainMeterBillingFormData: NewMainMeterBillingFormData(),
+			Upper:                    MainMeterTmplData{ID: mainMeter.ID},
 		},
 	)
 }
@@ -708,27 +722,34 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 	if addBillingPeriod == false && removeBillingPeriod == false {
 		parse = true
 	}
+
+	maxDayDiff := r.PostFormValue("max-day-diff")
+	tmplData.MaxDayDiff = maxDayDiff
+	parsedMaxDayDiff, err := parseMaxDayDiff(maxDayDiff)
+	// TODO - use parsedMaxDayDiff
+	if err != nil {
+		tmplData.MaxDayDiffError = err.Error()
+		formError = true
+	}
+
 	var mainMeterBillingPeriods []*spinusdb.CreateMainMeterBillingPeriodParams
 	var breakPoints [][3]time.Time
 
 	beginDates := r.PostForm["begin-date"]
 	endDates := r.PostForm["end-date"]
-	maxDayDiffs := r.PostForm["max-day-diff"]
 	beginReadingValues := r.PostForm["begin-reading-value"]
 	endReadingValues := r.PostForm["end-reading-value"]
 	consumedEnergyPrices := r.PostForm["consumed-energy-price"]
 	servicePrices := r.PostForm["service-price"]
 	billingPeriodsLen := len(beginDates)
 	for i := 0; i < billingPeriodsLen; i++ {
-		mainMeterBillingPeriodForm := NewMainMeterBillingPeriodFormData()
+		mainMeterBillingPeriodForm := &MainMeterBillingPeriodFormData{}
 		tmplData.BillingPeriods = append(
 			tmplData.BillingPeriods, mainMeterBillingPeriodForm)
 		beginDate := beginDates[i]
 		mainMeterBillingPeriodForm.BeginDate = beginDate
 		endDate := endDates[i]
 		mainMeterBillingPeriodForm.EndDate = endDate
-		maxDayDiff := maxDayDiffs[i]
-		mainMeterBillingPeriodForm.MaxDayDiff = maxDayDiff
 		beginReadingValue := beginReadingValues[i]
 		mainMeterBillingPeriodForm.BeginReadingValue = beginReadingValue
 		endReadingValue := endReadingValues[i]
@@ -780,37 +801,28 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 				mainMeterBillingPeriodForm.EndDateError = err.Error()
 				formError = true
 			}
-			parsedMaxDateDiff, err := parseMaxDayDiff(maxDayDiff)
-			if err == nil {
-				if formError == false {
-					mainMeterBillingPeriod.MaxDayDiff = parsedMaxDateDiff
-					dayDiff := int(parsedMaxDateDiff.Int32)
-					parsedBeginTime := parsedBeginDate.Time
+			if formError == false {
+				dayDiff := int(parsedMaxDayDiff.Int32)
+				parsedBeginTime := parsedBeginDate.Time
+				breakPoints = append(
+					breakPoints,
+					[3]time.Time{
+						parsedBeginTime.AddDate(0, 0, -dayDiff),
+						parsedBeginTime,
+						parsedBeginTime.AddDate(0, 0, dayDiff),
+					},
+				)
+				if i == billingPeriodsLen {
+					parsedEndTime := parsedEndDate.Time
 					breakPoints = append(
 						breakPoints,
 						[3]time.Time{
-							parsedBeginTime.AddDate(0, 0, -dayDiff),
-							parsedBeginTime,
-							parsedBeginTime.AddDate(0, 0, dayDiff),
+							parsedEndTime.AddDate(0, 0, -dayDiff),
+							parsedEndTime,
+							parsedEndTime.AddDate(0, 0, dayDiff),
 						},
 					)
-					if i == billingPeriodsLen {
-						parsedEndTime := parsedEndDate.Time
-						breakPoints = append(
-							breakPoints,
-							[3]time.Time{
-								parsedEndTime.AddDate(
-									0, 0, -dayDiff),
-								parsedEndTime,
-								parsedEndTime.AddDate(
-									0, 0, dayDiff),
-							},
-						)
-					}
 				}
-			} else {
-				mainMeterBillingPeriodForm.MaxDayDiffError = err.Error()
-				formError = true
 			}
 			parsedBeginReadingValue, err := parseReadingValue(beginReadingValue)
 			if err == nil {
@@ -855,9 +867,8 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		}
 	}
 	if addBillingPeriod {
-		mainMeterBillingPeriodForm := NewMainMeterBillingPeriodFormData()
 		tmplData.BillingPeriods = append(
-			tmplData.BillingPeriods, mainMeterBillingPeriodForm)
+			tmplData.BillingPeriods, &MainMeterBillingPeriodFormData{})
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	} else if removeBillingPeriod {
@@ -874,12 +885,12 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		return
 	}
 
-	subMeterReadings, err := s.queries.GetSubMeterReadings(r.Context(), mainMeterID)
-	if err != nil {
-		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
-		return
-	}
+	// subMeterReadings, err := s.queries.GetSubMeterReadings(r.Context(), mainMeterID)
+	// if err != nil {
+	// 	slog.Error("error executing query", "err", err)
+	// 	s.HandleInternalServerError(w, r, err)
+	// 	return
+	// }
 	// readingsLen := len(subMeterReadings)
 	// if readingsLen == 0 {
 	// 	tmplData.GeneralError = "There is no sub meter."

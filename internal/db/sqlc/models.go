@@ -76,6 +76,7 @@ type MainMeterBilling struct {
 	ID          int32
 	FkMainMeter int32
 	Subid       int32
+	MaxDayDiff  pgtype.Int4
 }
 
 type MainMeterBillingPeriod struct {
@@ -84,7 +85,6 @@ type MainMeterBillingPeriod struct {
 	Subid               int32
 	BeginDate           pgtype.Date
 	EndDate             pgtype.Date
-	MaxDayDiff          pgtype.Int4
 	BeginReadingValue   float64
 	EndReadingValue     float64
 	ConsumedEnergyPrice float64

@@ -1,10 +1,11 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "chart.fullname" . }}
   labels:
     {{- include "chart.labels" . | nindent 4 }}
 spec:
+  serviceName: {{ include "chart.fullname" . }}
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
@@ -19,7 +20,7 @@ spec:
     spec:
       initContainers:
         - name: wait-for-postgres
-          image: postgres:alpine
+          image: "postgres:alpine"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ['sh', '-c', 'until pg_isready --host {{ .Values.postgres.host }} --port {{ .Values.postgres.port }} --dbname {{ .Values.postgres.name }} --username {{.Values.postgres.username }}; do sleep 2; done;']
       containers:

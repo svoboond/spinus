@@ -15,7 +15,7 @@ func main() {
 	flag.Parse()
 	config, err := conf.New(*localConfPath)
 	if err != nil {
-		log.Fatal("could not create config: %w", err)
+		log.Fatalf("could not create config: %v", err)
 	}
 	postgresUrl := url.URL{
 		Scheme: "postgres",
@@ -25,8 +25,8 @@ func main() {
 	}
 	cmd := exec.Command("./sqlc", "generate")
 	cmd.Env = append(cmd.Env, fmt.Sprintf("POSTGRES_URI=%s", postgresUrl.String()))
-	_, err = cmd.Output()
+	out, err := cmd.Output()
 	if err != nil {
-		log.Fatal("error calling sqlc: %w", err)
+		log.Fatalf("error calling sqlc: %s, %v", out, err)
 	}
 }

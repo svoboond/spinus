@@ -49,6 +49,7 @@ CREATE TABLE main_meter_billing (
 	id INT GENERATED ALWAYS AS IDENTITY,
 	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
 	subid INT NOT NULL,
+	max_day_diff INT DEFAULT 14,
 	PRIMARY KEY(id),
 	UNIQUE(fk_main_meter, subid)
 );
@@ -58,7 +59,6 @@ CREATE TABLE main_meter_billing_period (
 	subid INT NOT NULL,
 	begin_date DATE NOT NULL,
 	end_date DATE NOT NULL,
-	max_day_diff INT DEFAULT 14,
 	begin_reading_value DOUBLE PRECISION NOT NULL,
 	end_reading_value DOUBLE PRECISION NOT NULL,
 	consumed_energy_price DOUBLE PRECISION NOT NULL,

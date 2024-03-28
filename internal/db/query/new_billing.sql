@@ -49,12 +49,11 @@ INSERT INTO main_meter_billing_period (
 	subid,
 	begin_date,
 	end_date,
-	max_day_diff,
 	begin_reading_value,
 	end_reading_value,
 	consumed_energy_price,
 	service_price
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7, $8
+) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7
 	FROM main_meter_billing_period
 	WHERE fk_main_billing = $1
 RETURNING *;
