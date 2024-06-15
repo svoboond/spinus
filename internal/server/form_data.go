@@ -35,7 +35,7 @@ type SubMeterFormData struct {
 	MeterIDError string
 }
 
-type MainMeterReadingFormData struct {
+type SubMeterReadingFormData struct {
 	GeneralError      string
 	ReadingValue      string
 	ReadingValueError string
@@ -43,10 +43,31 @@ type MainMeterReadingFormData struct {
 	ReadingDateError  string
 }
 
-type SubMeterReadingFormData struct {
-	GeneralError      string
-	ReadingValue      string
-	ReadingValueError string
-	ReadingDate       string
-	ReadingDateError  string
+type MainMeterBillingPeriodFormData struct {
+	BeginDate                string
+	BeginDateError           string
+	EndDate                  string
+	EndDateError             string
+	BeginReadingValue        string
+	BeginReadingValueError   string
+	EndReadingValue          string
+	EndReadingValueError     string
+	ConsumedEnergyPrice      string
+	ConsumedEnergyPriceError string
+	ServicePrice             string
+	ServicePriceError        string
+}
+
+func NewMainMeterBillingFormData() MainMeterBillingFormData {
+	return MainMeterBillingFormData{
+		MaxDayDiff:     "14",
+		BillingPeriods: []*MainMeterBillingPeriodFormData{{}},
+	}
+}
+
+type MainMeterBillingFormData struct {
+	GeneralError    string
+	MaxDayDiff      string
+	MaxDayDiffError string
+	BillingPeriods  []*MainMeterBillingPeriodFormData
 }

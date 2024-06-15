@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+data:
+  local.yaml: |+
+    postgres:
+      {{ if .Values.postgres.host -}}
+      host: {{ .Values.postgres.host }}
+      {{- end }}
+      {{ if .Values.postgres.port -}}
+      port: {{ .Values.postgres.port }}
+      {{- end }}
+      {{ if .Values.postgres.name -}}
+      name: {{ .Values.postgres.name }}
+      {{- end }}
+      {{ if .Values.postgres.username -}}
+      username: {{ .Values.postgres.username }}
+      {{- end }}
+      {{ if .Values.postgres.password -}}
+      password: {{ .Values.postgres.password }}
+      {{- end }}
+  sqlc.yaml: |+
+    version: "2"
+    sql:
+      - engine: "postgresql"
+        queries: "./internal/db/query/"
+        schema: "./internal/db/migration/"
+        database:
+          uri: "${POSTGRES_URI}"
+        gen:
+          go:
+            package: "spinusdb"
+            out: "./internal/db/sqlc"
+            sql_package: "pgx/v5"
+            emit_enum_valid_method: true

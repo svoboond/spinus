@@ -43,7 +43,7 @@ func (s *Server) WithUserID(h http.Handler) http.Handler {
 func (s *Server) WithRequiredLogin(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := UserID(r.Context())
-		if ok == false {
+		if !ok {
 			slog.Error("error getting user ID", "userID", userID)
 			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 			return
@@ -76,7 +76,7 @@ func (s *Server) WithMainMeter(h http.Handler) http.Handler {
 		mainMeterID := int32(id)
 		ctx := r.Context()
 		userID, ok := UserID(ctx)
-		if ok == false {
+		if !ok {
 			slog.Error("error getting user ID", "userID", userID)
 			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 			return
@@ -124,7 +124,7 @@ func (s *Server) WithSubMeter(h http.Handler) http.Handler {
 		subMeterID := int32(id)
 		ctx := r.Context()
 		userID, ok := UserID(ctx)
-		if ok == false {
+		if !ok {
 			slog.Error("error getting user ID", "userID", userID)
 			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 			return

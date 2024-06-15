@@ -1,10 +1,11 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "chart.fullname" . }}
   labels:
     {{- include "chart.labels" . | nindent 4 }}
 spec:
+  serviceName: {{ include "chart.fullname" . }}
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
@@ -22,33 +23,19 @@ spec:
           image: "postgres:alpine"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ['sh', '-c', 'until pg_isready --host {{ .Values.postgres.host }} --port {{ .Values.postgres.port }} --dbname {{ .Values.postgres.name }} --username {{.Values.postgres.username }}; do sleep 2; done;']
-        - name: wait-for-redis
-          image: "redis:alpine"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ['sh', '-c', 'until [ "x`redis-cli --no-auth-warning -u {{ .Values.redis.url }} ping`" = "xPONG" ]; do sleep 2; done;']
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["-config", "/app/local-conf.yaml"]
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-#          readinessProbe:
-#            httpGet:
-#              path: /
-#              port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: /app/local-conf.yaml
               subPath: local.yaml
+            - name: config
+              mountPath: /app/sqlc.yaml
+              subPath: sqlc.yaml
       volumes:
         - name: config
           configMap:

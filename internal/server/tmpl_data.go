@@ -11,16 +11,6 @@ type MainMeterOverviewTmplData struct {
 	Upper MainMeterTmplData
 }
 
-type MainMeterReadingListTmplData struct {
-	MainMeterReadings []spinusdb.MainMeterReading
-	Upper             MainMeterTmplData
-}
-
-type MainMeterReadingCreateTmplData struct {
-	MainMeterReadingFormData
-	Upper MainMeterTmplData
-}
-
 type SubMeterListTmplData struct {
 	SubMeters []spinusdb.ListSubMetersRow
 	Upper     MainMeterTmplData
@@ -49,4 +39,13 @@ type SubMeterReadingListTmplData struct {
 type SubMeterReadingCreateTmplData struct {
 	SubMeterReadingFormData
 	Upper SubMeterTmplData
+}
+
+type MainMeterBillingListTmplData struct {
+	Upper MainMeterTmplData
+}
+
+type MainMeterBillingCreateTmplData struct {
+	MainMeterBillingFormData
+	Upper MainMeterTmplData
 }

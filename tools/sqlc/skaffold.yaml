@@ -1,27 +1,27 @@
 apiVersion: skaffold/v3
 kind: Config
 metadata:
-  name: spinus
+  name: spinus-sqlc
 build:
   artifacts:
-    - image: spinus
+    - image: spinus-sqlc
       context: .
       docker:
-        dockerfile: Dockerfile
+        dockerfile: tools/sqlc/Dockerfile
   local:
     push: false
     useBuildkit: true
 deploy:
   helm:
     releases:
-      - name: spinus-local-dev
-        chartPath: helm
+      - name: spinus-sqlc-local-dev
+        chartPath: tools/sqlc/helm
         valuesFiles:
           - siteconfig/local-dev.yaml
         namespace: spinus-local-dev
         setValueTemplates:
-          image.repository: "{{.IMAGE_REPO_spinus}}"
-          image.tag: "{{.IMAGE_TAG_spinus}}@{{.IMAGE_DIGEST_spinus}}"
+          image.repository: "{{.IMAGE_REPO_spinus_sqlc}}"
+          image.tag: "{{.IMAGE_TAG_spinus_sqlc}}@{{.IMAGE_DIGEST_spinus_sqlc}}"
   kubeContext: local-dev
 profiles:
   - name: local-dev
@@ -30,12 +30,6 @@ profiles:
     build:
       tagPolicy:
         sha256: {}
-    portForward:
-      - resourceType: service
-        resourceName: spinus-local-dev
-        namespace: spinus-local-dev
-        port: 80
-        localPort: 8213
   - name: nocache
     patches:
       - op: add

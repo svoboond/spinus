@@ -1,0 +1,8 @@
+{{ define "mainMeterBillingList" }}
+<main>
+	{{ template "mainMeterUpper" .Upper }}
+	<h1>Billings</h1>
+	<li><a href="/main-meter/{{ .Upper.ID }}/billing/new">New Billing</a></li>
+</main>
+{{ template "lower" }}
+{{ end }}
