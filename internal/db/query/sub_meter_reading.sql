@@ -10,3 +10,8 @@ INSERT INTO sub_meter_reading (
 	FROM sub_meter_reading
 	WHERE fk_sub_meter = $1
 RETURNING *;
+
+-- name: GetSubMeterReadingForDate :one
+SELECT 1 FROM sub_meter_reading
+WHERE fk_sub_meter = $1 AND reading_date = $2
+LIMIT 1;
