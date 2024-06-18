@@ -1,5 +1,7 @@
 package server
 
+import spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+
 type SignUpFormData struct {
 	GeneralError        string
 	Username            string
@@ -30,9 +32,11 @@ type MainMeterFormData struct {
 }
 
 type SubMeterFormData struct {
-	GeneralError string
-	MeterID      string
-	MeterIDError string
+	GeneralError          string
+	MeterID               string
+	MeterIDError          string
+	FinancialBalance      string
+	FinancialBalanceError string
 }
 
 type SubMeterReadingFormData struct {
@@ -60,14 +64,16 @@ type MainMeterBillingPeriodFormData struct {
 
 func NewMainMeterBillingFormData() MainMeterBillingFormData {
 	return MainMeterBillingFormData{
-		MaxDayDiff:     "14",
-		BillingPeriods: []*MainMeterBillingPeriodFormData{{}},
+		MaxDayDiff:              "14",
+		MainMeterBillingPeriods: []*MainMeterBillingPeriodFormData{{}},
 	}
 }
 
 type MainMeterBillingFormData struct {
-	GeneralError    string
-	MaxDayDiff      string
-	MaxDayDiffError string
-	BillingPeriods  []*MainMeterBillingPeriodFormData
+	GeneralError            string
+	MaxDayDiff              string
+	MaxDayDiffError         string
+	MainMeterBillingPeriods []*MainMeterBillingPeriodFormData
+	SubMeterBillings        []*spinusdb.ListMainMeterBillingSubMetersRow
+	Calculated              bool
 }

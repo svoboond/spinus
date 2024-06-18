@@ -1,5 +1,6 @@
 {{ define "mainMeterBillingCreate" }}
 <main>
+	{{ template "mainMeterUpper" .Upper }}
 	<h1>New Billing</h1>
 	<form method="post">
 		{{ with .GeneralError }}
@@ -13,7 +14,7 @@
 		<label class="error" for="max-day-diff">{{ . }}</label>
 		{{ end }}
 
-		{{ range $i, $billingPeriod := .BillingPeriods }}
+		{{ range $i, $billingPeriod := .MainMeterBillingPeriods }}
 		<fieldset>
 			<h3>Billing Period {{ len (printf " %*s" $i "") }}</h3>
 
@@ -77,7 +78,9 @@
 			formnovalidate>
 		<input type="submit" name="remove-billing-period" value="Remove Billing Period"
 			formnovalidate>
-		<input type="submit" name="create" value="Create">
+		<input type="submit" name="calculate-billing" value="Calculate">
+		<input type="submit" name="create-billing" value="Create"
+			{{ if not .Calculated }} disabled {{ end }}>
 	</form>
 </main>
 {{ template "lower" }}

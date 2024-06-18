@@ -29,6 +29,7 @@ CREATE TABLE sub_meter (
 	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
 	subid INT NOT NULL,
 	meter_id VARCHAR(64),
+	financial_balance DOUBLE PRECISION NOT NULL,
 	fk_user INT NOT NULL REFERENCES spinus_user(id),
 	PRIMARY KEY(id),
 	UNIQUE(fk_main_meter, subid)

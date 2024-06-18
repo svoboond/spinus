@@ -14,6 +14,13 @@
 		<label class="error" for="meter-identification">{{ . }}</label>
 		{{ end }}
 
+		<label for="financial-balance">Financial Balance</label>
+		<input type="number" step="0.001" name="financial-balance" id="financial-balance" required
+			{{ with .FinancialBalance }} value="{{ . }}" {{ end }}>
+		{{ with .FinancialBalanceError }}
+		<label class="error" for="financial-balance">{{ . }}</label>
+		{{ end }}
+
 		<input type="submit" value="Create">
 	</form>
 </main>

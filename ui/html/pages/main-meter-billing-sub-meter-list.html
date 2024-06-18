@@ -1,0 +1,19 @@
+{{ define "mainMeterBillingSubMeterList" }}
+<table>
+	<tr>
+		<th>ID</th>
+		<th>Meter Identification</th>
+		<th>Energy</th>
+		<th>Address</th>
+	</tr>
+	{{ range . }}
+	<tr>
+		<td>{{ .ID }}</td>
+		<td>{{ .MeterID }}</td>
+		<td>{{ .Energy }}</td>
+		<td>{{ .Address }}</td>
+		<td><a href="/main-meter/{{ .ID }}/overview">Detail</a></td>
+	</tr>
+	{{ end }}
+</table>
+{{ end }}

@@ -6,6 +6,7 @@
 		<tr>
 			<th>SubID</th>
 			<th>Meter Identification</th>
+			<th>Financial Balance</th>
 			<th>User Email</th>
 			<th>Address</th>
 			<th>Main Meter User Email</th>
@@ -15,6 +16,7 @@
 			{{ with .SubMeterID }}
 			<td>{{ .String }}</td>
 			{{ end }}
+			<td>{{ .FinancialBalance }}</td>
 			<td>{{ .SubUserEmail }}</td>
 			<td>{{ .Address }}</td>
 			<td>{{ .MainUserEmail }}</td>

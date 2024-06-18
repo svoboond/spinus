@@ -109,11 +109,12 @@ type SpinusUser struct {
 }
 
 type SubMeter struct {
-	ID          int32
-	FkMainMeter int32
-	Subid       int32
-	MeterID     pgtype.Text
-	FkUser      int32
+	ID               int32
+	FkMainMeter      int32
+	Subid            int32
+	MeterID          pgtype.Text
+	FinancialBalance float64
+	FkUser           int32
 }
 
 type SubMeterBilling struct {

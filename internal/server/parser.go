@@ -120,6 +120,17 @@ func parseSubMeterID(s string) (SubMeterID, error) {
 	}
 }
 
+type FinancialBalance float64
+
+func parseFinancialBalance(s string) (FinancialBalance, error) {
+	var v FinancialBalance
+	p, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return v, errors.New("Enter valid financial balance.")
+	}
+	return FinancialBalance(p), nil
+}
+
 type ReadingValue float64
 
 func parseReadingValue(s string) (ReadingValue, error) {

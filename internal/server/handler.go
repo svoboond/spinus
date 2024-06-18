@@ -443,11 +443,19 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	meterID := r.PostFormValue("meter-identification")
-	tmplData.MeterID = meterID
-	subMeterID, err := parseSubMeterID(meterID)
+	iMeterID := r.PostFormValue("meter-identification")
+	tmplData.MeterID = iMeterID
+	subMeterID, err := parseSubMeterID(iMeterID)
 	if err != nil {
 		tmplData.MeterIDError = err.Error()
+		formError = true
+	}
+
+	IFinancialBalance := r.PostFormValue("financial-balance")
+	tmplData.FinancialBalance = IFinancialBalance
+	financialBalance, err := parseFinancialBalance(IFinancialBalance)
+	if err != nil {
+		tmplData.FinancialBalanceError = err.Error()
 		formError = true
 	}
 
@@ -459,9 +467,10 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 	_, err = s.queries.CreateSubMeter(
 		ctx,
 		spinusdb.CreateSubMeterParams{
-			FkMainMeter: mainMeter.ID,
-			MeterID:     pgtype.Text{String: string(subMeterID), Valid: true},
-			FkUser:      userID,
+			FkMainMeter:      mainMeter.ID,
+			MeterID:          pgtype.Text{String: string(subMeterID), Valid: true},
+			FinancialBalance: float64(financialBalance),
+			FkUser:           userID,
 		},
 	)
 	if err != nil {
@@ -716,10 +725,13 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 
 	mainMeterID := mainMeter.ID
 
-	var mainMeterbillingPeriodForms []*MainMeterBillingPeriodFormData
+	var mainMeterBillingPeriodForms []*MainMeterBillingPeriodFormData
+	var subMeterBillingForms []*spinusdb.ListMainMeterBillingSubMetersRow
 	tmplData := MainMeterBillingCreateTmplData{
 		MainMeterBillingFormData: MainMeterBillingFormData{
-			BillingPeriods: mainMeterbillingPeriodForms},
+			MainMeterBillingPeriods: mainMeterBillingPeriodForms,
+			SubMeterBillings:        subMeterBillingForms,
+		},
 		Upper: MainMeterTmplData{ID: mainMeterID},
 	}
 	var formError bool
@@ -783,8 +795,8 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 	mmBillingPeriodIndex := 0
 	for i := billingPeriodsLastIndex; i >= 0; i-- {
 		mainMeterBillingPeriodForm := &MainMeterBillingPeriodFormData{}
-		tmplData.BillingPeriods = append(
-			tmplData.BillingPeriods, mainMeterBillingPeriodForm)
+		tmplData.MainMeterBillingPeriods = append(
+			tmplData.MainMeterBillingPeriods, mainMeterBillingPeriodForm)
 		iBeginDate := iBeginDates[i]
 		mainMeterBillingPeriodForm.BeginDate = iBeginDate
 		iEndDate := iEndDates[i]
@@ -840,7 +852,8 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 						previousBeginDate.Time {
 
 						laterBillingPeriod :=
-							tmplData.BillingPeriods[laterIndex]
+							tmplData.
+								MainMeterBillingPeriods[laterIndex]
 						laterBillingPeriod.BeginDateError =
 							"Begin date must follow previous " +
 								"billing period's end date."
@@ -851,7 +864,7 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 				}
 				mainMeterBillingPeriod.BeginDate = pgtype.Date{
 					Time: beginTime.Time, Valid: true}
-				if endTime.Time.Before(beginTime.Time) {
+				if endTime.Before(beginTime.Time) {
 					mainMeterBillingPeriodForm.EndDateError =
 						"End date must be greater or equal to begin date."
 					formError = true
@@ -916,15 +929,16 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		}
 		mmBillingPeriodIndex++
 	}
-	slices.Reverse(tmplData.BillingPeriods)
+	slices.Reverse(tmplData.MainMeterBillingPeriods)
 	if addBillingPeriod {
-		tmplData.BillingPeriods = append(
-			tmplData.BillingPeriods, &MainMeterBillingPeriodFormData{})
+		tmplData.MainMeterBillingPeriods = append(
+			tmplData.MainMeterBillingPeriods, &MainMeterBillingPeriodFormData{})
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	} else if removeBillingPeriod {
 		if billingPeriodsLen > 1 {
-			tmplData.BillingPeriods = tmplData.BillingPeriods[:billingPeriodsLastIndex]
+			tmplData.MainMeterBillingPeriods =
+				tmplData.MainMeterBillingPeriods[:billingPeriodsLastIndex]
 		}
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
@@ -1253,6 +1267,27 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		sort.Sort(sort.Reverse(calcBreakPoints))
 	}
 
+	tx, err := s.postgresClient.Begin(ctx)
+	if err != nil {
+		slog.Error("error beginning transaction", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	defer tx.Rollback(ctx)
+	qtx := s.queries.WithTx(tx)
+
+	previousSMBillingAdvancePrices, err := s.queries.GetPreviousSubMeterBillingAdvancePrices(
+		ctx, pgtype.Int4{Int32: mainMeterID, Valid: true})
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	previousSubMeterAdvancePrices := make(map[int32]float64)
+	for _, smAdvancePrice := range previousSMBillingAdvancePrices {
+		previousSubMeterAdvancePrices[smAdvancePrice.Subid] = smAdvancePrice.AdvancePrice
+	}
+
 	subMeterBillings := make(map[int32]*spinusdb.CreateSubMeterBillingParams)
 	subMeterBillingPeriods := make(
 		map[int]map[int32]*spinusdb.CreateSubMeterBillingPeriodParams)
@@ -1392,7 +1427,7 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 					smBilling.ServicePrice.Valid = true
 				}
 				advancePrice := consumedEnergyPrice + servicePrice
-				totalPrice := consumedEnergyPrice + servicePrice + advancePrice
+				totalPrice := consumedEnergyPrice + servicePrice + advancePrice // TODO - minus previous advance price
 				smBillingPeriod.AdvancePrice = advancePrice
 				smBillingPeriod.TotalPrice = totalPrice
 				smBilling.EnergyConsumption += energyConsumption
@@ -1437,14 +1472,12 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		laterBreakPointReadings = breakPointReadings[bpActual]
 	}
 
-	tx, err := s.postgresClient.Begin(ctx)
-	if err != nil {
-		slog.Error("error beginning transaction", "err", err)
-		s.HandleInternalServerError(w, r, err)
+	// Calculate billing, do not create.
+	if r.PostFormValue("calculate-billing") != "" {
+		tmplData.Calculated = true
+		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}
-	defer tx.Rollback(ctx)
-	qtx := s.queries.WithTx(tx)
 	createdMainMeterBilling, err := qtx.CreateMainMeterBilling(ctx, mainMeterBilling)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
@@ -1495,6 +1528,5 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-
-	s.renderTemplate(w, r, tmplName, tmplData)
+	// TODO - redirect
 }

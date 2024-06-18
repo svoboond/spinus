@@ -7,6 +7,7 @@
 		<tr>
 			<th>SubID</th>
 			<th>Meter Identification</th>
+			<th>Financial Balance</th>
 			<th>User Email</th>
 		</tr>
 		{{ range .SubMeters }}
@@ -15,6 +16,7 @@
 			{{ with .MeterID }}
 			<td>{{ .String }}</td>
 			{{ end }}
+			<td>{{ .FinancialBalance }}</td>
 			<td>{{ .Email }}</td>
 			<td><a href="/main-meter/{{ $.Upper.ID }}/sub-meter/{{ .Subid }}/overview">Detail</a></td>
 		</tr>
