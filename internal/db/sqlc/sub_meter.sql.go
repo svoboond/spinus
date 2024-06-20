@@ -106,7 +106,7 @@ func (q *Queries) GetSubMeter(ctx context.Context, arg GetSubMeterParams) (GetSu
 }
 
 const listSubMeters = `-- name: ListSubMeters :many
-SELECT subid, meter_id, financial_balance, email
+SELECT sub_meter.id, subid, meter_id, financial_balance, email
 FROM sub_meter
 JOIN spinus_user
 	ON sub_meter.fk_user = spinus_user.id
@@ -115,6 +115,7 @@ ORDER BY subid
 `
 
 type ListSubMetersRow struct {
+	ID               int32
 	Subid            int32
 	MeterID          pgtype.Text
 	FinancialBalance float64
@@ -131,6 +132,7 @@ func (q *Queries) ListSubMeters(ctx context.Context, fkMainMeter int32) ([]ListS
 	for rows.Next() {
 		var i ListSubMetersRow
 		if err := rows.Scan(
+			&i.ID,
 			&i.Subid,
 			&i.MeterID,
 			&i.FinancialBalance,

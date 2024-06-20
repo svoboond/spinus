@@ -31,6 +31,13 @@
 		<label class="error" for="address">{{ . }}</label>
 		{{ end }}
 
+		<label for="currency-code">Currency Code (Required)</label>
+		<input type="text" name="currency-code" id="currency-code" minlength="3" maxlength="3" required
+			{{ with .CurrencyCode }} value="{{ . }}" {{ end }}>
+		{{ with .CurrencyCodeError }}
+		<label class="error" for="currency-code">{{ . }}</label>
+		{{ end }}
+
 		<input type="submit" value="Create">
 	</form>
 </main>

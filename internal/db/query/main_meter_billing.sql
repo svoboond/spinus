@@ -1,7 +1,8 @@
 -- name: ListMainMeterBillingSubMeters :many
-SELECT	sub_meter.subid,
+SELECT	sub_meter.id,
+	sub_meter.subid,
 	sub_meter.meter_id,
-	spinus_user.username,
+	spinus_user.email,
 	energy_consumption,
 	consumed_energy_price,
 	service_price,

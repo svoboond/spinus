@@ -65,11 +65,12 @@ func (e Energy) Valid() bool {
 }
 
 type MainMeter struct {
-	ID      int32
-	MeterID string
-	Energy  Energy
-	Address string
-	FkUser  int32
+	ID           int32
+	MeterID      string
+	Energy       Energy
+	Address      string
+	CurrencyCode string
+	FkUser       int32
 }
 
 type MainMeterBilling struct {

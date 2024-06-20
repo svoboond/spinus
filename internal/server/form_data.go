@@ -1,6 +1,6 @@
 package server
 
-import spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+import "github.com/jackc/pgx/v5/pgtype"
 
 type SignUpFormData struct {
 	GeneralError        string
@@ -22,13 +22,15 @@ type LogInFormData struct {
 }
 
 type MainMeterFormData struct {
-	GeneralError string
-	MeterID      string
-	MeterIDError string
-	Energy       string
-	EnergyError  string
-	Address      string
-	AddressError string
+	GeneralError      string
+	MeterID           string
+	MeterIDError      string
+	Energy            string
+	EnergyError       string
+	Address           string
+	AddressError      string
+	CurrencyCode      string
+	CurrencyCodeError string
 }
 
 type SubMeterFormData struct {
@@ -69,11 +71,23 @@ func NewMainMeterBillingFormData() MainMeterBillingFormData {
 	}
 }
 
+type MainMeterBillingSubMeterFormData struct {
+	ID                  int32
+	Subid               int32
+	MeterID             pgtype.Text
+	Email               string
+	EnergyConsumption   float64
+	ConsumedEnergyPrice float64
+	ServicePrice        pgtype.Float8
+	AdvancePrice        float64
+	TotalPrice          float64
+}
+
 type MainMeterBillingFormData struct {
 	GeneralError            string
 	MaxDayDiff              string
 	MaxDayDiffError         string
 	MainMeterBillingPeriods []*MainMeterBillingPeriodFormData
-	SubMeterBillings        []*spinusdb.ListMainMeterBillingSubMetersRow
+	SubMeterBillings        []*MainMeterBillingSubMeterFormData
 	Calculated              bool
 }

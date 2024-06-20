@@ -6,16 +6,24 @@ JOIN spinus_user
 WHERE main_meter.id = $1
 LIMIT 1;
 
--- name: ListMainMeters :many
+-- name: ListUserMainMeters :many
 SELECT * FROM main_meter
 WHERE fk_user = $1
 ORDER BY id;
 
 -- name: CreateMainMeter :one
 INSERT INTO main_meter (
-	meter_id, energy, address, fk_user
+	meter_id,
+	energy,
+	address,
+	currency_code,
+	fk_user
 ) VALUES (
-	$1, $2, $3, $4
+	TRIM(sqlc.arg(meter_id)),
+	sqlc.arg(energy),
+	TRIM(sqlc.arg(address)),
+	UPPER(TRIM(sqlc.arg(currency_code))),
+	sqlc.arg(fk_user)
 )
 RETURNING *;
 
@@ -24,7 +32,8 @@ UPDATE main_meter set
 	meter_id = $2,
 	energy = $3,
 	address = $4,
-	fk_user = $5
+	currency_code = $5,
+	fk_user = $6
 WHERE id = $1;
 
 -- name: DeleteMainMeter :exec

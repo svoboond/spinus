@@ -105,6 +105,16 @@ func parseEnergy(s string) (spinusdb.Energy, error) {
 	return v, nil
 }
 
+type CurrencyCode string
+
+func parseCurrencyCode(s string) (CurrencyCode, error) {
+	v := CurrencyCode(strings.TrimSpace(s))
+	if len(v) != 3 {
+		return v, errors.New("Enter currency code with 3 characters.")
+	}
+	return v, nil
+}
+
 type SubMeterID string
 
 func parseSubMeterID(s string) (SubMeterID, error) {

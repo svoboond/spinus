@@ -8,6 +8,7 @@
 			<th>Meter Identification</th>
 			<th>Energy</th>
 			<th>Address</th>
+			<th>Currency Code</th>
 		</tr>
 		{{ range . }}
 		<tr>
@@ -15,6 +16,7 @@
 			<td>{{ .MeterID }}</td>
 			<td>{{ .Energy }}</td>
 			<td>{{ .Address }}</td>
+			<td>{{ .CurrencyCode }}</td>
 			<td><a href="/main-meter/{{ .ID }}/overview">Detail</a></td>
 		</tr>
 		{{ end }}

@@ -21,7 +21,7 @@ WHERE fk_main_meter = $1 AND subid = $2
 LIMIT 1;
 
 -- name: ListSubMeters :many
-SELECT subid, meter_id, financial_balance, email
+SELECT sub_meter.id, subid, meter_id, financial_balance, email
 FROM sub_meter
 JOIN spinus_user
 	ON sub_meter.fk_user = spinus_user.id

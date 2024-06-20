@@ -11,18 +11,27 @@ import (
 
 const createMainMeter = `-- name: CreateMainMeter :one
 INSERT INTO main_meter (
-	meter_id, energy, address, fk_user
+	meter_id,
+	energy,
+	address,
+	currency_code,
+	fk_user
 ) VALUES (
-	$1, $2, $3, $4
+	TRIM($1),
+	$2,
+	TRIM($3),
+	UPPER(TRIM($4)),
+	$5
 )
-RETURNING id, meter_id, energy, address, fk_user
+RETURNING id, meter_id, energy, address, currency_code, fk_user
 `
 
 type CreateMainMeterParams struct {
-	MeterID string
-	Energy  Energy
-	Address string
-	FkUser  int32
+	MeterID      string
+	Energy       Energy
+	Address      string
+	CurrencyCode string
+	FkUser       int32
 }
 
 func (q *Queries) CreateMainMeter(ctx context.Context, arg CreateMainMeterParams) (MainMeter, error) {
@@ -30,6 +39,7 @@ func (q *Queries) CreateMainMeter(ctx context.Context, arg CreateMainMeterParams
 		arg.MeterID,
 		arg.Energy,
 		arg.Address,
+		arg.CurrencyCode,
 		arg.FkUser,
 	)
 	var i MainMeter
@@ -38,6 +48,7 @@ func (q *Queries) CreateMainMeter(ctx context.Context, arg CreateMainMeterParams
 		&i.MeterID,
 		&i.Energy,
 		&i.Address,
+		&i.CurrencyCode,
 		&i.FkUser,
 	)
 	return i, err
@@ -54,7 +65,7 @@ func (q *Queries) DeleteMainMeter(ctx context.Context, id int32) error {
 }
 
 const getMainMeter = `-- name: GetMainMeter :one
-SELECT main_meter.id, main_meter.meter_id, main_meter.energy, main_meter.address, main_meter.fk_user, spinus_user.email
+SELECT main_meter.id, main_meter.meter_id, main_meter.energy, main_meter.address, main_meter.currency_code, main_meter.fk_user, spinus_user.email
 FROM main_meter
 JOIN spinus_user
 	ON main_meter.fk_user = spinus_user.id
@@ -63,12 +74,13 @@ LIMIT 1
 `
 
 type GetMainMeterRow struct {
-	ID      int32
-	MeterID string
-	Energy  Energy
-	Address string
-	FkUser  int32
-	Email   string
+	ID           int32
+	MeterID      string
+	Energy       Energy
+	Address      string
+	CurrencyCode string
+	FkUser       int32
+	Email        string
 }
 
 func (q *Queries) GetMainMeter(ctx context.Context, id int32) (GetMainMeterRow, error) {
@@ -79,20 +91,21 @@ func (q *Queries) GetMainMeter(ctx context.Context, id int32) (GetMainMeterRow, 
 		&i.MeterID,
 		&i.Energy,
 		&i.Address,
+		&i.CurrencyCode,
 		&i.FkUser,
 		&i.Email,
 	)
 	return i, err
 }
 
-const listMainMeters = `-- name: ListMainMeters :many
-SELECT id, meter_id, energy, address, fk_user FROM main_meter
+const listUserMainMeters = `-- name: ListUserMainMeters :many
+SELECT id, meter_id, energy, address, currency_code, fk_user FROM main_meter
 WHERE fk_user = $1
 ORDER BY id
 `
 
-func (q *Queries) ListMainMeters(ctx context.Context, fkUser int32) ([]MainMeter, error) {
-	rows, err := q.db.Query(ctx, listMainMeters, fkUser)
+func (q *Queries) ListUserMainMeters(ctx context.Context, fkUser int32) ([]MainMeter, error) {
+	rows, err := q.db.Query(ctx, listUserMainMeters, fkUser)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +118,7 @@ func (q *Queries) ListMainMeters(ctx context.Context, fkUser int32) ([]MainMeter
 			&i.MeterID,
 			&i.Energy,
 			&i.Address,
+			&i.CurrencyCode,
 			&i.FkUser,
 		); err != nil {
 			return nil, err
@@ -122,16 +136,18 @@ UPDATE main_meter set
 	meter_id = $2,
 	energy = $3,
 	address = $4,
-	fk_user = $5
+	currency_code = $5,
+	fk_user = $6
 WHERE id = $1
 `
 
 type UpdateMainMeterParams struct {
-	ID      int32
-	MeterID string
-	Energy  Energy
-	Address string
-	FkUser  int32
+	ID           int32
+	MeterID      string
+	Energy       Energy
+	Address      string
+	CurrencyCode string
+	FkUser       int32
 }
 
 func (q *Queries) UpdateMainMeter(ctx context.Context, arg UpdateMainMeterParams) error {
@@ -140,6 +156,7 @@ func (q *Queries) UpdateMainMeter(ctx context.Context, arg UpdateMainMeterParams
 		arg.MeterID,
 		arg.Energy,
 		arg.Address,
+		arg.CurrencyCode,
 		arg.FkUser,
 	)
 	return err

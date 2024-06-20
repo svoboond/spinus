@@ -166,9 +166,9 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	user, err := s.queries.CreateUser(
 		ctx,
 		spinusdb.CreateUserParams{
-			Username: string(username),
-			Email:    string(email),
-			Crypt:    string(password),
+			Username:      string(username),
+			Email:         string(email),
+			PasswordCrypt: string(password),
 		},
 	)
 	if err != nil {
@@ -246,7 +246,10 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	user, err := s.queries.GetUser(
-		ctx, spinusdb.GetUserParams{Username: string(username), Crypt: string(password)})
+		ctx, spinusdb.GetUserParams{
+			Username: string(username), PasswordCrypt: string(password),
+		},
+	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			formData.GeneralError = "Wrong username or password."
@@ -285,7 +288,7 @@ func (s *Server) HandleGetMainMeterList(w http.ResponseWriter, r *http.Request) 
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
-	mainMeters, err := s.queries.ListMainMeters(r.Context(), userID)
+	mainMeters, err := s.queries.ListUserMainMeters(r.Context(), userID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -726,7 +729,7 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 	mainMeterID := mainMeter.ID
 
 	var mainMeterBillingPeriodForms []*MainMeterBillingPeriodFormData
-	var subMeterBillingForms []*spinusdb.ListMainMeterBillingSubMetersRow
+	var subMeterBillingForms []*MainMeterBillingSubMeterFormData
 	tmplData := MainMeterBillingCreateTmplData{
 		MainMeterBillingFormData: MainMeterBillingFormData{
 			MainMeterBillingPeriods: mainMeterBillingPeriodForms,
@@ -949,7 +952,16 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		return
 	}
 
-	subMeterReadings, err := s.queries.GetSubMeterReadings(
+	tx, err := s.postgresClient.Begin(ctx)
+	if err != nil {
+		slog.Error("error beginning transaction", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	defer tx.Rollback(ctx)
+	qtx := s.queries.WithTx(tx)
+
+	subMeterReadings, err := qtx.GetSubMeterReadings(
 		ctx, spinusdb.GetSubMeterReadingsParams{
 			FkMainMeter: mainMeterID,
 			DateMin:     pgtype.Date{Time: mainMeterBillingMinTime, Valid: true},
@@ -1267,25 +1279,16 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		sort.Sort(sort.Reverse(calcBreakPoints))
 	}
 
-	tx, err := s.postgresClient.Begin(ctx)
-	if err != nil {
-		slog.Error("error beginning transaction", "err", err)
-		s.HandleInternalServerError(w, r, err)
-		return
-	}
-	defer tx.Rollback(ctx)
-	qtx := s.queries.WithTx(tx)
-
-	previousSMBillingAdvancePrices, err := s.queries.GetPreviousSubMeterBillingAdvancePrices(
-		ctx, pgtype.Int4{Int32: mainMeterID, Valid: true})
+	subMeterList, err := qtx.ListSubMeters(ctx, mainMeterID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	previousSubMeterAdvancePrices := make(map[int32]float64)
-	for _, smAdvancePrice := range previousSMBillingAdvancePrices {
-		previousSubMeterAdvancePrices[smAdvancePrice.Subid] = smAdvancePrice.AdvancePrice
+	subMeters := make(map[int32]spinusdb.ListSubMetersRow)
+	for _, sm := range subMeterList {
+		subMeter := sm
+		subMeters[sm.ID] = subMeter
 	}
 
 	subMeterBillings := make(map[int32]*spinusdb.CreateSubMeterBillingParams)
@@ -1412,10 +1415,20 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 				// Calculate all prices for sub meter billing periods and main
 				// meter billing period.
 				smBilling, ok := subMeterBillings[smID]
+				var smForm *MainMeterBillingSubMeterFormData
 				if !ok {
 					smBilling = &spinusdb.CreateSubMeterBillingParams{
 						FkSubMeter: smID}
 					subMeterBillings[smID] = smBilling
+					subMeter := subMeters[smID]
+					smForm = &MainMeterBillingSubMeterFormData{
+						ID: smID,
+						Subid: subMeter.Subid,
+						MeterID: subMeter.MeterID,
+						Email: subMeter.Email,
+					}
+					tmplData.SubMeterBillings = append(
+						tmplData.SubMeterBillings, smForm)
 				}
 
 				energyConsumption := smBillingPeriod.EnergyConsumption
@@ -1425,6 +1438,8 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 					servicePrice = smBillingPeriod.ServicePrice.Float64
 					smBilling.ServicePrice.Float64 += servicePrice
 					smBilling.ServicePrice.Valid = true
+					smForm.ServicePrice.Float64 += servicePrice
+					smForm.ServicePrice.Valid = true
 				}
 				advancePrice := consumedEnergyPrice + servicePrice
 				totalPrice := consumedEnergyPrice + servicePrice + advancePrice // TODO - minus previous advance price
@@ -1434,6 +1449,10 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 				smBilling.ConsumedEnergyPrice += consumedEnergyPrice
 				smBilling.AdvancePrice += advancePrice
 				smBilling.TotalPrice += totalPrice
+				smForm.EnergyConsumption += energyConsumption
+				smForm.ConsumedEnergyPrice += consumedEnergyPrice
+				smForm.AdvancePrice += advancePrice
+				smForm.TotalPrice += totalPrice
 				mmBillingPeriod.AdvancePrice += advancePrice
 				mmBillingPeriod.TotalPrice += advancePrice
 			}

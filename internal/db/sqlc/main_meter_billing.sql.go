@@ -53,9 +53,10 @@ func (q *Queries) GetPreviousSubMeterBillingAdvancePrices(ctx context.Context, m
 }
 
 const listMainMeterBillingSubMeters = `-- name: ListMainMeterBillingSubMeters :many
-SELECT	sub_meter.subid,
+SELECT	sub_meter.id,
+	sub_meter.subid,
 	sub_meter.meter_id,
-	spinus_user.username,
+	spinus_user.email,
 	energy_consumption,
 	consumed_energy_price,
 	service_price,
@@ -71,9 +72,10 @@ ORDER BY subid
 `
 
 type ListMainMeterBillingSubMetersRow struct {
+	ID                  int32
 	Subid               int32
 	MeterID             pgtype.Text
-	Username            string
+	Email               string
 	EnergyConsumption   float64
 	ConsumedEnergyPrice float64
 	ServicePrice        pgtype.Float8
@@ -91,9 +93,10 @@ func (q *Queries) ListMainMeterBillingSubMeters(ctx context.Context, fkMainBilli
 	for rows.Next() {
 		var i ListMainMeterBillingSubMetersRow
 		if err := rows.Scan(
+			&i.ID,
 			&i.Subid,
 			&i.MeterID,
-			&i.Username,
+			&i.Email,
 			&i.EnergyConsumption,
 			&i.ConsumedEnergyPrice,
 			&i.ServicePrice,

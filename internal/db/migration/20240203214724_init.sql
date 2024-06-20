@@ -20,6 +20,7 @@ CREATE TABLE main_meter (
 	meter_id VARCHAR(64) NOT NULL CHECK (LENGTH(TRIM(meter_id)) >= 3),
 	energy ENERGY NOT NULL,
 	address VARCHAR(255) NOT NULL CHECK (LENGTH(TRIM(address)) >= 8),
+	currency_code VARCHAR(2) NOT NULL CHECK (LENGTH(TRIM(currency_code)) = 3 AND currency_code = UPPER(currency_code)),
 	fk_user INT NOT NULL REFERENCES spinus_user(id),
 	PRIMARY KEY(id)
 );
