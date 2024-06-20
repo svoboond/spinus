@@ -2,7 +2,7 @@ package server
 
 import "github.com/jackc/pgx/v5/pgtype"
 
-type SignUpFormData struct {
+type SignUpForm struct {
 	GeneralError        string
 	Username            string
 	UsernameError       string
@@ -13,7 +13,7 @@ type SignUpFormData struct {
 	RepeatPasswordError string
 }
 
-type LogInFormData struct {
+type LogInForm struct {
 	GeneralError  string
 	Username      string
 	UsernameError string
@@ -21,7 +21,7 @@ type LogInFormData struct {
 	PasswordError string
 }
 
-type MainMeterFormData struct {
+type MainMeterForm struct {
 	GeneralError      string
 	MeterID           string
 	MeterIDError      string
@@ -33,7 +33,7 @@ type MainMeterFormData struct {
 	CurrencyCodeError string
 }
 
-type SubMeterFormData struct {
+type SubMeterForm struct {
 	GeneralError          string
 	MeterID               string
 	MeterIDError          string
@@ -41,7 +41,7 @@ type SubMeterFormData struct {
 	FinancialBalanceError string
 }
 
-type SubMeterReadingFormData struct {
+type SubMeterReadingForm struct {
 	GeneralError      string
 	ReadingValue      string
 	ReadingValueError string
@@ -49,7 +49,24 @@ type SubMeterReadingFormData struct {
 	ReadingDateError  string
 }
 
-type MainMeterBillingPeriodFormData struct {
+func NewMainMeterBillingForm() MainMeterBillingForm {
+	return MainMeterBillingForm{
+		MaxDayDiff:              "14",
+		MainMeterBillingPeriods: []*MainMeterBillingPeriodForm{{}},
+		SubMeterBillings:        MainMeterBillingSubMeterForms{},
+	}
+}
+
+type MainMeterBillingForm struct {
+	GeneralError            string
+	MaxDayDiff              string
+	MaxDayDiffError         string
+	MainMeterBillingPeriods []*MainMeterBillingPeriodForm
+	SubMeterBillings        MainMeterBillingSubMeterForms
+	Calculated              bool
+}
+
+type MainMeterBillingPeriodForm struct {
 	BeginDate                string
 	BeginDateError           string
 	EndDate                  string
@@ -64,14 +81,7 @@ type MainMeterBillingPeriodFormData struct {
 	ServicePriceError        string
 }
 
-func NewMainMeterBillingFormData() MainMeterBillingFormData {
-	return MainMeterBillingFormData{
-		MaxDayDiff:              "14",
-		MainMeterBillingPeriods: []*MainMeterBillingPeriodFormData{{}},
-	}
-}
-
-type MainMeterBillingSubMeterFormData struct {
+type MainMeterBillingSubMeterForm struct {
 	ID                  int32
 	Subid               int32
 	MeterID             pgtype.Text
@@ -83,11 +93,8 @@ type MainMeterBillingSubMeterFormData struct {
 	TotalPrice          float64
 }
 
-type MainMeterBillingFormData struct {
-	GeneralError            string
-	MaxDayDiff              string
-	MaxDayDiffError         string
-	MainMeterBillingPeriods []*MainMeterBillingPeriodFormData
-	SubMeterBillings        []*MainMeterBillingSubMeterFormData
-	Calculated              bool
-}
+type MainMeterBillingSubMeterForms []*MainMeterBillingSubMeterForm
+
+func (f MainMeterBillingSubMeterForms) Less(i, j int) bool { return f[i].Subid < f[j].Subid }
+func (f MainMeterBillingSubMeterForms) Swap(i, j int)      { f[i], f[j] = f[j], f[i] }
+func (f MainMeterBillingSubMeterForms) Len() int           { return len(f) }

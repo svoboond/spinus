@@ -91,12 +91,12 @@ func (s *Server) HandleGetLogIn(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "signUp"
 
-	formData := SignUpFormData{}
+	form := SignUpForm{}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
-		formData.GeneralError = "Bad request"
-		if err := s.templates.Render(w, tmplName, formData); err != nil {
+		form.GeneralError = "Bad request"
+		if err := s.templates.Render(w, tmplName, form); err != nil {
 			slog.Error("error rendering template", "template", tmplName, "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -107,59 +107,59 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	iUsername := r.PostFormValue("username")
-	formData.Username = iUsername
+	form.Username = iUsername
 	username, err := parseUsername(iUsername)
 	if err == nil {
 		_, err := s.queries.GetUserByUsername(ctx, string(username))
 		if err == nil {
-			formData.UsernameError = "Username is already taken."
+			form.UsernameError = "Username is already taken."
 			formError = true
 		} else if err != pgx.ErrNoRows {
 			s.HandleInternalServerError(w, r, err)
 			return
 		}
 	} else {
-		formData.UsernameError = err.Error()
+		form.UsernameError = err.Error()
 		formError = true
 	}
 
 	iEmail := r.PostFormValue("email")
-	formData.Email = iEmail
+	form.Email = iEmail
 	email, err := parseEmail(iEmail)
 	if err == nil {
 		_, err := s.queries.GetUserByEmail(ctx, string(email))
 		if err == nil {
-			formData.EmailError = "Email is already assigned to another account."
+			form.EmailError = "Email is already assigned to another account."
 			formError = true
 		} else if err != pgx.ErrNoRows {
 			s.HandleInternalServerError(w, r, err)
 			return
 		}
 	} else {
-		formData.EmailError = err.Error()
+		form.EmailError = err.Error()
 		formError = true
 	}
 
 	password, passwordErr := parsePassword(r.PostFormValue("password"))
 	if passwordErr != nil {
-		formData.PasswordError = passwordErr.Error()
+		form.PasswordError = passwordErr.Error()
 		formError = true
 	}
 	repeatPassword, repeatPasswordErr := parsePassword(r.PostFormValue("repeat-password"))
 	if repeatPasswordErr != nil {
-		formData.RepeatPasswordError = repeatPasswordErr.Error()
+		form.RepeatPasswordError = repeatPasswordErr.Error()
 		formError = true
 	}
 	if passwordErr == nil &&
 		repeatPasswordErr == nil &&
 		password != repeatPassword {
 
-		formData.PasswordError = "Passwords do not match."
+		form.PasswordError = "Passwords do not match."
 		formError = true
 	}
 
 	if formError {
-		s.renderTemplate(w, r, tmplName, formData)
+		s.renderTemplate(w, r, tmplName, form)
 		return
 	}
 
@@ -210,12 +210,12 @@ func (s *Server) HandlePostLogOut(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "logIn"
-	formData := LogInFormData{}
+	form := LogInForm{}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
-		formData.GeneralError = "Bad request"
-		if err := s.templates.Render(w, tmplName, formData); err != nil {
+		form.GeneralError = "Bad request"
+		if err := s.templates.Render(w, tmplName, form); err != nil {
 			slog.Error("error rendering template", "template", tmplName, "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -224,23 +224,23 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	iUsername := r.PostFormValue("username")
-	formData.Username = iUsername
+	form.Username = iUsername
 	username, err := parseUsername(iUsername)
 	if err != nil {
-		formData.UsernameError = err.Error()
+		form.UsernameError = err.Error()
 		formError = true
 	}
 
 	iPassword := r.PostFormValue("password")
-	formData.Password = iPassword
+	form.Password = iPassword
 	password, err := parsePassword(iPassword)
 	if err != nil {
-		formData.PasswordError = err.Error()
+		form.PasswordError = err.Error()
 		formError = true
 	}
 
 	if formError {
-		s.renderTemplate(w, r, tmplName, formData)
+		s.renderTemplate(w, r, tmplName, form)
 		return
 	}
 
@@ -252,8 +252,8 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			formData.GeneralError = "Wrong username or password."
-			s.renderTemplate(w, r, tmplName, formData)
+			form.GeneralError = "Wrong username or password."
+			s.renderTemplate(w, r, tmplName, form)
 		} else {
 			slog.Error("error executing query", "err", err)
 			s.HandleInternalServerError(w, r, err)
@@ -305,12 +305,12 @@ func (s *Server) HandleGetMainMeterCreate(w http.ResponseWriter, r *http.Request
 
 func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mainMeterCreate"
-	formData := MainMeterFormData{}
+	form := MainMeterForm{}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
-		formData.GeneralError = "Bad request"
-		if err := s.templates.Render(w, tmplName, formData); err != nil {
+		form.GeneralError = "Bad request"
+		if err := s.templates.Render(w, tmplName, form); err != nil {
 			slog.Error("error rendering template", "template", tmplName, "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -319,31 +319,39 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 	}
 
 	iMeterID := r.PostFormValue("meter-identification")
-	formData.MeterID = iMeterID
+	form.MeterID = iMeterID
 	meterID, err := parseMainMeterID(iMeterID)
 	if err != nil {
-		formData.MeterIDError = err.Error()
+		form.MeterIDError = err.Error()
 		formError = true
 	}
 
 	iEnergy := r.PostFormValue("energy")
-	formData.Energy = iEnergy
+	form.Energy = iEnergy
 	energy, err := parseEnergy(iEnergy)
 	if err != nil {
-		formData.EnergyError = err.Error()
+		form.EnergyError = err.Error()
 		formError = true
 	}
 
 	iAddress := r.PostFormValue("address")
-	formData.Address = iAddress
+	form.Address = iAddress
 	address, err := parseAddress(iAddress)
 	if err != nil {
-		formData.AddressError = err.Error()
+		form.AddressError = err.Error()
+		formError = true
+	}
+
+	iCurrencyCode := r.PostFormValue("currency-code")
+	form.CurrencyCode = iCurrencyCode
+	currencyCode, err := parseCurrencyCode(iCurrencyCode)
+	if err != nil {
+		form.CurrencyCodeError = err.Error()
 		formError = true
 	}
 
 	if formError {
-		s.renderTemplate(w, r, tmplName, formData)
+		s.renderTemplate(w, r, tmplName, form)
 		return
 	}
 
@@ -357,10 +365,11 @@ func (s *Server) HandlePostMainMeterCreate(w http.ResponseWriter, r *http.Reques
 	mainMeter, err := s.queries.CreateMainMeter(
 		ctx,
 		spinusdb.CreateMainMeterParams{
-			MeterID: string(meterID),
-			Energy:  energy,
-			Address: string(address),
-			FkUser:  userID,
+			MeterID:      string(meterID),
+			Energy:       energy,
+			Address:      string(address),
+			CurrencyCode: string(currencyCode),
+			FkUser:       userID,
 		},
 	)
 	if err != nil {
@@ -407,8 +416,8 @@ func (s *Server) HandleGetSubMeterCreate(w http.ResponseWriter, r *http.Request)
 		w, r,
 		tmplName,
 		SubMeterCreateTmplData{
-			SubMeterFormData: SubMeterFormData{},
-			Upper:            MainMeterTmplData{ID: mainMeter.ID},
+			SubMeterForm: SubMeterForm{},
+			Upper:        MainMeterTmplData{ID: mainMeter.ID},
 		},
 	)
 }
@@ -431,8 +440,8 @@ func (s *Server) HandlePostSubMeterCreate(w http.ResponseWriter, r *http.Request
 	}
 
 	tmplData := SubMeterCreateTmplData{
-		SubMeterFormData: SubMeterFormData{},
-		Upper:            MainMeterTmplData{ID: mainMeter.ID},
+		SubMeterForm: SubMeterForm{},
+		Upper:        MainMeterTmplData{ID: mainMeter.ID},
 	}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
@@ -581,7 +590,7 @@ func (s *Server) HandleGetSubMeterReadingCreate(w http.ResponseWriter, r *http.R
 		w, r,
 		tmplName,
 		SubMeterReadingCreateTmplData{
-			SubMeterReadingFormData: SubMeterReadingFormData{},
+			SubMeterReadingForm: SubMeterReadingForm{},
 			Upper: SubMeterTmplData{
 				MainMeterID: subMeter.MainMeterID, Subid: subMeter.Subid},
 		},
@@ -602,7 +611,7 @@ func (s *Server) HandlePostSubMeterReadingCreate(w http.ResponseWriter, r *http.
 	mainMeterID := subMeter.MainMeterID
 	subMeterSubid := subMeter.Subid
 	tmplData := SubMeterReadingCreateTmplData{
-		SubMeterReadingFormData: SubMeterReadingFormData{},
+		SubMeterReadingForm: SubMeterReadingForm{},
 		Upper: SubMeterTmplData{
 			MainMeterID: mainMeterID, Subid: subMeterSubid},
 	}
@@ -709,8 +718,8 @@ func (s *Server) HandleGetMainMeterBillingCreate(w http.ResponseWriter, r *http.
 		w, r,
 		tmplName,
 		MainMeterBillingCreateTmplData{
-			MainMeterBillingFormData: NewMainMeterBillingFormData(),
-			Upper:                    MainMeterTmplData{ID: mainMeter.ID},
+			MainMeterBillingForm: NewMainMeterBillingForm(),
+			Upper:                MainMeterTmplData{ID: mainMeter.ID},
 		},
 	)
 }
@@ -728,10 +737,11 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 
 	mainMeterID := mainMeter.ID
 
-	var mainMeterBillingPeriodForms []*MainMeterBillingPeriodFormData
-	var subMeterBillingForms []*MainMeterBillingSubMeterFormData
+	var mainMeterBillingPeriodForms []*MainMeterBillingPeriodForm
+	var subMeterBillingForms MainMeterBillingSubMeterForms
+	subMeterIDBillingForms := make(map[int32]*MainMeterBillingSubMeterForm)
 	tmplData := MainMeterBillingCreateTmplData{
-		MainMeterBillingFormData: MainMeterBillingFormData{
+		MainMeterBillingForm: MainMeterBillingForm{
 			MainMeterBillingPeriods: mainMeterBillingPeriodForms,
 			SubMeterBillings:        subMeterBillingForms,
 		},
@@ -797,7 +807,7 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 
 	mmBillingPeriodIndex := 0
 	for i := billingPeriodsLastIndex; i >= 0; i-- {
-		mainMeterBillingPeriodForm := &MainMeterBillingPeriodFormData{}
+		mainMeterBillingPeriodForm := &MainMeterBillingPeriodForm{}
 		tmplData.MainMeterBillingPeriods = append(
 			tmplData.MainMeterBillingPeriods, mainMeterBillingPeriodForm)
 		iBeginDate := iBeginDates[i]
@@ -935,7 +945,7 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 	slices.Reverse(tmplData.MainMeterBillingPeriods)
 	if addBillingPeriod {
 		tmplData.MainMeterBillingPeriods = append(
-			tmplData.MainMeterBillingPeriods, &MainMeterBillingPeriodFormData{})
+			tmplData.MainMeterBillingPeriods, &MainMeterBillingPeriodForm{})
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	} else if removeBillingPeriod {
@@ -1408,25 +1418,28 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 			smBillingPeriod.ConsumedEnergyPrice +=
 				energyConsumption * mmConsumedEnergyPricePerUnit
 		}
-		if bpActual == mmMinTime {
+		if bpActual.Equal(mmMinTime) {
 			// Earliest break point for current main meter billing period.
 			smBillingPeriods := subMeterBillingPeriods[mmBillingPeriodIndex]
 			for smID, smBillingPeriod := range smBillingPeriods {
 				// Calculate all prices for sub meter billing periods and main
 				// meter billing period.
 				smBilling, ok := subMeterBillings[smID]
-				var smForm *MainMeterBillingSubMeterFormData
-				if !ok {
+				var smForm *MainMeterBillingSubMeterForm
+				if ok {
+					smForm = subMeterIDBillingForms[smID]
+				} else {
+					subMeter := subMeters[smID]
 					smBilling = &spinusdb.CreateSubMeterBillingParams{
 						FkSubMeter: smID}
 					subMeterBillings[smID] = smBilling
-					subMeter := subMeters[smID]
-					smForm = &MainMeterBillingSubMeterFormData{
-						ID: smID,
-						Subid: subMeter.Subid,
+					smForm = &MainMeterBillingSubMeterForm{
+						ID:      smID,
+						Subid:   subMeter.Subid,
 						MeterID: subMeter.MeterID,
-						Email: subMeter.Email,
+						Email:   subMeter.Email,
 					}
+					subMeterIDBillingForms[smID] = smForm
 					tmplData.SubMeterBillings = append(
 						tmplData.SubMeterBillings, smForm)
 				}
@@ -1462,7 +1475,7 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 			mainMeterBilling.TotalPrice += mmBillingPeriodAdvancePrice
 			mmBillingPeriodIndex++
 			if mmBillingPeriodIndex == billingPeriodsLen {
-				break
+				break // TODO - use financial balance
 			}
 
 			// Prepare main meter billing period.
@@ -1494,7 +1507,7 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 	// Calculate billing, do not create.
 	if r.PostFormValue("calculate-billing") != "" {
 		tmplData.Calculated = true
-		// TODO - sort tmplData.SubMeterBillings by Subid
+		sort.Sort(tmplData.SubMeterBillings)
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}

@@ -64,9 +64,9 @@
 			{{ end }}
 
 			{{ $servicePriceID := printf "service-price-%d" $i }}
-			<label for="{{ $servicePriceID }}">Service Price (Required)</label>
+			<label for="{{ $servicePriceID }}">Service Price</label>
 			<input type="number" step="0.001" name="service-price"
-				id="{{ $servicePriceID }}" min="0" required
+				id="{{ $servicePriceID }}" min="0"
 				{{ with .ServicePrice }} value="{{ . }}" {{ end }}>
 			{{ with .ServicePriceError }}
 			<label class="error" for="{{ $servicePriceID }}">{{ . }}</label>
@@ -78,6 +78,40 @@
 			formnovalidate>
 		<input type="submit" name="remove-billing-period" value="Remove Billing Period"
 			formnovalidate>
+
+		{{ if .SubMeterBillings }}
+		<table>
+			<tr>
+				<th>SubID</th>
+				<th>Meter Identification</th>
+				<th>User Email</th>
+				<th>Energy Consumption</th>
+				<th>Consumed Energy Price</th>
+				<th>Service Price</th>
+				<th>Advance Price</th>
+				<th>Total Price</th>
+			</tr>
+			{{ range .SubMeterBillings }}
+			<tr>
+				<td>{{ .Subid }}</td>
+				{{ with .MeterID }}
+				<td>{{ .String }}</td>
+				{{ end }}
+				<td>{{ .Email }}</td>
+				<td>{{ .EnergyConsumption }}</td>
+				<td>{{ .ConsumedEnergyPrice }}</td>
+				{{ if .ServicePrice.Valid }}
+				<td>{{ .ServicePrice.Float64 }}</td>
+				{{ else }}
+				<td></td>
+				{{ end }}
+				<td>{{ .AdvancePrice }}</td>
+				<td>{{ .TotalPrice }}</td>
+			</tr>
+			{{ end }}
+		</table>
+		{{ end }}
+
 		<input type="submit" name="calculate-billing" value="Calculate">
 		<input type="submit" name="create-billing" value="Create"
 			{{ if not .Calculated }} disabled {{ end }}>

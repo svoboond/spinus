@@ -17,7 +17,7 @@ type SubMeterListTmplData struct {
 }
 
 type SubMeterCreateTmplData struct {
-	SubMeterFormData
+	SubMeterForm
 	Upper MainMeterTmplData
 }
 
@@ -37,7 +37,7 @@ type SubMeterReadingListTmplData struct {
 }
 
 type SubMeterReadingCreateTmplData struct {
-	SubMeterReadingFormData
+	SubMeterReadingForm
 	Upper SubMeterTmplData
 }
 
@@ -46,6 +46,6 @@ type MainMeterBillingListTmplData struct {
 }
 
 type MainMeterBillingCreateTmplData struct {
-	MainMeterBillingFormData
+	MainMeterBillingForm
 	Upper MainMeterTmplData
 }
