@@ -1494,6 +1494,7 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 	// Calculate billing, do not create.
 	if r.PostFormValue("calculate-billing") != "" {
 		tmplData.Calculated = true
+		// TODO - sort tmplData.SubMeterBillings by Subid
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}
