@@ -147,3 +147,19 @@ func (q *Queries) ListSubMeters(ctx context.Context, fkMainMeter int32) ([]ListS
 	}
 	return items, nil
 }
+
+const updateSubMeterFinancialBalance = `-- name: UpdateSubMeterFinancialBalance :exec
+UPDATE sub_meter
+SET financial_balance = $2
+WHERE id = $1
+`
+
+type UpdateSubMeterFinancialBalanceParams struct {
+	ID               int32
+	FinancialBalance float64
+}
+
+func (q *Queries) UpdateSubMeterFinancialBalance(ctx context.Context, arg UpdateSubMeterFinancialBalanceParams) error {
+	_, err := q.db.Exec(ctx, updateSubMeterFinancialBalance, arg.ID, arg.FinancialBalance)
+	return err
+}

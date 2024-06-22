@@ -82,15 +82,16 @@ type MainMeterBillingPeriodForm struct {
 }
 
 type MainMeterBillingSubMeterForm struct {
-	ID                  int32
-	Subid               int32
-	MeterID             pgtype.Text
-	Email               string
-	EnergyConsumption   float64
-	ConsumedEnergyPrice float64
-	ServicePrice        pgtype.Float8
-	AdvancePrice        float64
-	TotalPrice          float64
+	ID                   int32
+	Subid                int32
+	MeterID              pgtype.Text
+	Email                string
+	EnergyConsumption    float64
+	ConsumedEnergyPrice  float64
+	ServicePrice         pgtype.Float8
+	AdvancePrice         float64
+	FromFinancialBalance float64
+	ToPay                float64
 }
 
 type MainMeterBillingSubMeterForms []*MainMeterBillingSubMeterForm

@@ -35,7 +35,6 @@ CREATE TABLE sub_meter (
 	PRIMARY KEY(id),
 	UNIQUE(fk_main_meter, subid)
 );
-
 CREATE TABLE sub_meter_reading (
 	id INT GENERATED ALWAYS AS IDENTITY,
 	fk_sub_meter INT NOT NULL REFERENCES sub_meter(id),
@@ -47,6 +46,10 @@ CREATE TABLE sub_meter_reading (
 	UNIQUE(fk_sub_meter, reading_date)
 );
 
+CREATE TYPE MAIN_METER_BILLING_STATUS AS ENUM (
+	'in progress',
+	'completed'
+);
 CREATE TABLE main_meter_billing (
 	id INT GENERATED ALWAYS AS IDENTITY,
 	fk_main_meter INT NOT NULL REFERENCES main_meter(id),
@@ -58,7 +61,9 @@ CREATE TABLE main_meter_billing (
 	consumed_energy_price DOUBLE PRECISION NOT NULL,
 	service_price DOUBLE PRECISION,
 	advance_price DOUBLE PRECISION NOT NULL,
-	total_price DOUBLE PRECISION NOT NULL,
+	from_financial_balance DOUBLE PRECISION NOT NULL,
+	to_pay DOUBLE PRECISION NOT NULL,
+	status MAIN_METER_BILLING_STATUS NOT NULL,
 	PRIMARY KEY(id),
 	UNIQUE(fk_main_meter, subid)
 );
@@ -78,6 +83,10 @@ CREATE TABLE main_meter_billing_period (
 	PRIMARY KEY(id),
 	UNIQUE(fk_main_billing, subid)
 );
+CREATE TYPE SUB_METER_BILLING_STATUS AS ENUM (
+	'unpaid',
+	'paid'
+);
 CREATE TABLE sub_meter_billing (
 	id INT GENERATED ALWAYS AS IDENTITY,
 	fk_sub_meter INT NOT NULL REFERENCES sub_meter(id),
@@ -87,7 +96,9 @@ CREATE TABLE sub_meter_billing (
 	consumed_energy_price DOUBLE PRECISION NOT NULL,
 	service_price DOUBLE PRECISION,
 	advance_price DOUBLE PRECISION NOT NULL,
-	total_price DOUBLE PRECISION NOT NULL,
+	from_financial_balance DOUBLE PRECISION NOT NULL,
+	to_pay DOUBLE PRECISION NOT NULL,
+	status SUB_METER_BILLING_STATUS NOT NULL,
 	PRIMARY KEY(id),
 	UNIQUE(fk_sub_meter, subid)
 );
@@ -116,7 +127,9 @@ DROP TABLE sub_meter;
 
 DROP TABLE sub_meter_reading;
 
+DROP TYPE IF EXISTS MAIN_METER_BILLING_STATUS;
 DROP TABLE main_meter_billing;
 DROP TABLE main_meter_billing_period;
+DROP TYPE IF EXISTS SUB_METER_BILLING_STATUS;
 DROP TABLE sub_meter_billing;
 DROP TABLE sub_meter_billing_period;

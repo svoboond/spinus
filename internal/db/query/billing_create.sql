@@ -59,8 +59,10 @@ INSERT INTO main_meter_billing (
 	consumed_energy_price,
 	service_price,
 	advance_price,
-	total_price
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7, $8, $9
+	from_financial_balance,
+	to_pay,
+	status
+) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 	FROM main_meter_billing
 	WHERE fk_main_meter = $1
 RETURNING *;
@@ -92,8 +94,10 @@ INSERT INTO sub_meter_billing (
 	consumed_energy_price,
 	service_price,
 	advance_price,
-	total_price
-) SELECT $1, $2, COALESCE(MAX(subid), 0) + 1, $3, $4, $5, $6, $7
+	from_financial_balance,
+	to_pay,
+	status
+) SELECT $1, $2, COALESCE(MAX(subid), 0) + 1, $3, $4, $5, $6, $7, $8, $9
 	FROM sub_meter_billing
 	WHERE fk_sub_meter = $1
 RETURNING *;

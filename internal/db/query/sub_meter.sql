@@ -35,3 +35,8 @@ INSERT INTO sub_meter (
 	FROM sub_meter
 	WHERE fk_main_meter = $1
 RETURNING *;
+
+-- name: UpdateSubMeterFinancialBalance :exec
+UPDATE sub_meter
+SET financial_balance = $2
+WHERE id = $1;

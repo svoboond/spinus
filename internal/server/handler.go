@@ -937,7 +937,6 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 				}
 				mainMeterBilling.ConsumedEnergyPrice += float64(
 					consumedEnergyPrice)
-				mainMeterBilling.TotalPrice += totalPrice
 			}
 		}
 		mmBillingPeriodIndex++
@@ -1301,6 +1300,7 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 		subMeters[sm.ID] = subMeter
 	}
 
+	var subMeterFinancialBalances []spinusdb.UpdateSubMeterFinancialBalanceParams
 	subMeterBillings := make(map[int32]*spinusdb.CreateSubMeterBillingParams)
 	subMeterBillingPeriods := make(
 		map[int]map[int32]*spinusdb.CreateSubMeterBillingPeriodParams)
@@ -1455,27 +1455,59 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 					smForm.ServicePrice.Valid = true
 				}
 				advancePrice := consumedEnergyPrice + servicePrice
-				totalPrice := consumedEnergyPrice + servicePrice + advancePrice // TODO - minus previous advance price
+				totalPrice := consumedEnergyPrice + servicePrice + advancePrice
 				smBillingPeriod.AdvancePrice = advancePrice
 				smBillingPeriod.TotalPrice = totalPrice
 				smBilling.EnergyConsumption += energyConsumption
 				smBilling.ConsumedEnergyPrice += consumedEnergyPrice
 				smBilling.AdvancePrice += advancePrice
-				smBilling.TotalPrice += totalPrice
 				smForm.EnergyConsumption += energyConsumption
 				smForm.ConsumedEnergyPrice += consumedEnergyPrice
 				smForm.AdvancePrice += advancePrice
-				smForm.TotalPrice += totalPrice
+				// smForm.TotalPrice += totalPrice
 				mmBillingPeriod.AdvancePrice += advancePrice
 				mmBillingPeriod.TotalPrice += advancePrice
 			}
 			// Update main meter billing.
 			mmBillingPeriodAdvancePrice := mmBillingPeriod.AdvancePrice
 			mainMeterBilling.AdvancePrice += mmBillingPeriodAdvancePrice
-			mainMeterBilling.TotalPrice += mmBillingPeriodAdvancePrice
 			mmBillingPeriodIndex++
 			if mmBillingPeriodIndex == billingPeriodsLen {
-				break // TODO - use financial balance
+				for smID, smBilling := range subMeterBillings {
+					consumedEnergyPrice := smBilling.ConsumedEnergyPrice
+					var servicePrice float64
+					if smBilling.ServicePrice.Valid {
+						servicePrice = smBilling.ServicePrice.Float64
+					}
+					advancePrice := smBilling.AdvancePrice
+					totalPrice := consumedEnergyPrice + servicePrice +
+						advancePrice
+					subMeter := subMeters[smID]
+					financialBalance := subMeter.FinancialBalance
+					if totalPrice >= financialBalance {
+						smBilling.FromFinancialBalance = -totalPrice
+						smBilling.ToPay = 0
+						smBilling.Status =
+							spinusdb.SubMeterBillingStatusPaid
+						newFinancialBalance := financialBalance -
+							(consumedEnergyPrice + servicePrice)
+						smFinancialBalance :=
+							spinusdb.UpdateSubMeterFinancialBalanceParams{
+								ID:               smID,
+								FinancialBalance: newFinancialBalance,
+							}
+						subMeterFinancialBalances = append(
+							subMeterFinancialBalances,
+							smFinancialBalance,
+						)
+					} else {
+						smBilling.FromFinancialBalance = -financialBalance
+						smBilling.ToPay = totalPrice - financialBalance
+						smBilling.Status =
+							spinusdb.SubMeterBillingStatusUnpaid
+					}
+				}
+				break
 			}
 
 			// Prepare main meter billing period.
@@ -1553,6 +1585,15 @@ func (s *Server) HandlePostMainMeterBillingCreate(w http.ResponseWriter, r *http
 				return
 			}
 		}
+	}
+	for _, smFinancialBalance := range subMeterFinancialBalances {
+		err := qtx.UpdateSubMeterFinancialBalance(ctx, smFinancialBalance)
+		if err != nil {
+			slog.Error("error executing query", "err", err)
+			s.HandleInternalServerError(w, r, err)
+			return
+		}
+
 	}
 
 	err = tx.Commit(ctx)

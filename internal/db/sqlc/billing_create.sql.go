@@ -22,23 +22,27 @@ INSERT INTO main_meter_billing (
 	consumed_energy_price,
 	service_price,
 	advance_price,
-	total_price
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7, $8, $9
+	from_financial_balance,
+	to_pay,
+	status
+) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 	FROM main_meter_billing
 	WHERE fk_main_meter = $1
-RETURNING id, fk_main_meter, subid, max_day_diff, begin_date, end_date, energy_consumption, consumed_energy_price, service_price, advance_price, total_price
+RETURNING id, fk_main_meter, subid, max_day_diff, begin_date, end_date, energy_consumption, consumed_energy_price, service_price, advance_price, from_financial_balance, to_pay, status
 `
 
 type CreateMainMeterBillingParams struct {
-	FkMainMeter         int32
-	MaxDayDiff          int32
-	BeginDate           pgtype.Date
-	EndDate             pgtype.Date
-	EnergyConsumption   float64
-	ConsumedEnergyPrice float64
-	ServicePrice        pgtype.Float8
-	AdvancePrice        float64
-	TotalPrice          float64
+	FkMainMeter          int32
+	MaxDayDiff           int32
+	BeginDate            pgtype.Date
+	EndDate              pgtype.Date
+	EnergyConsumption    float64
+	ConsumedEnergyPrice  float64
+	ServicePrice         pgtype.Float8
+	AdvancePrice         float64
+	FromFinancialBalance float64
+	ToPay                float64
+	Status               MainMeterBillingStatus
 }
 
 func (q *Queries) CreateMainMeterBilling(ctx context.Context, arg CreateMainMeterBillingParams) (MainMeterBilling, error) {
@@ -51,7 +55,9 @@ func (q *Queries) CreateMainMeterBilling(ctx context.Context, arg CreateMainMete
 		arg.ConsumedEnergyPrice,
 		arg.ServicePrice,
 		arg.AdvancePrice,
-		arg.TotalPrice,
+		arg.FromFinancialBalance,
+		arg.ToPay,
+		arg.Status,
 	)
 	var i MainMeterBilling
 	err := row.Scan(
@@ -65,7 +71,9 @@ func (q *Queries) CreateMainMeterBilling(ctx context.Context, arg CreateMainMete
 		&i.ConsumedEnergyPrice,
 		&i.ServicePrice,
 		&i.AdvancePrice,
-		&i.TotalPrice,
+		&i.FromFinancialBalance,
+		&i.ToPay,
+		&i.Status,
 	)
 	return i, err
 }
@@ -142,21 +150,25 @@ INSERT INTO sub_meter_billing (
 	consumed_energy_price,
 	service_price,
 	advance_price,
-	total_price
-) SELECT $1, $2, COALESCE(MAX(subid), 0) + 1, $3, $4, $5, $6, $7
+	from_financial_balance,
+	to_pay,
+	status
+) SELECT $1, $2, COALESCE(MAX(subid), 0) + 1, $3, $4, $5, $6, $7, $8, $9
 	FROM sub_meter_billing
 	WHERE fk_sub_meter = $1
-RETURNING id, fk_sub_meter, fk_main_billing, subid, energy_consumption, consumed_energy_price, service_price, advance_price, total_price
+RETURNING id, fk_sub_meter, fk_main_billing, subid, energy_consumption, consumed_energy_price, service_price, advance_price, from_financial_balance, to_pay, status
 `
 
 type CreateSubMeterBillingParams struct {
-	FkSubMeter          int32
-	FkMainBilling       int32
-	EnergyConsumption   float64
-	ConsumedEnergyPrice float64
-	ServicePrice        pgtype.Float8
-	AdvancePrice        float64
-	TotalPrice          float64
+	FkSubMeter           int32
+	FkMainBilling        int32
+	EnergyConsumption    float64
+	ConsumedEnergyPrice  float64
+	ServicePrice         pgtype.Float8
+	AdvancePrice         float64
+	FromFinancialBalance float64
+	ToPay                float64
+	Status               SubMeterBillingStatus
 }
 
 func (q *Queries) CreateSubMeterBilling(ctx context.Context, arg CreateSubMeterBillingParams) (SubMeterBilling, error) {
@@ -167,7 +179,9 @@ func (q *Queries) CreateSubMeterBilling(ctx context.Context, arg CreateSubMeterB
 		arg.ConsumedEnergyPrice,
 		arg.ServicePrice,
 		arg.AdvancePrice,
-		arg.TotalPrice,
+		arg.FromFinancialBalance,
+		arg.ToPay,
+		arg.Status,
 	)
 	var i SubMeterBilling
 	err := row.Scan(
@@ -179,7 +193,9 @@ func (q *Queries) CreateSubMeterBilling(ctx context.Context, arg CreateSubMeterB
 		&i.ConsumedEnergyPrice,
 		&i.ServicePrice,
 		&i.AdvancePrice,
-		&i.TotalPrice,
+		&i.FromFinancialBalance,
+		&i.ToPay,
+		&i.Status,
 	)
 	return i, err
 }

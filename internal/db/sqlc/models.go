@@ -64,6 +64,108 @@ func (e Energy) Valid() bool {
 	return false
 }
 
+type MainMeterBillingStatus string
+
+const (
+	MainMeterBillingStatusInprogress MainMeterBillingStatus = "in progress"
+	MainMeterBillingStatusCompleted  MainMeterBillingStatus = "completed"
+)
+
+func (e *MainMeterBillingStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MainMeterBillingStatus(s)
+	case string:
+		*e = MainMeterBillingStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MainMeterBillingStatus: %T", src)
+	}
+	return nil
+}
+
+type NullMainMeterBillingStatus struct {
+	MainMeterBillingStatus MainMeterBillingStatus
+	Valid                  bool // Valid is true if MainMeterBillingStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMainMeterBillingStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.MainMeterBillingStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MainMeterBillingStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMainMeterBillingStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MainMeterBillingStatus), nil
+}
+
+func (e MainMeterBillingStatus) Valid() bool {
+	switch e {
+	case MainMeterBillingStatusInprogress,
+		MainMeterBillingStatusCompleted:
+		return true
+	}
+	return false
+}
+
+type SubMeterBillingStatus string
+
+const (
+	SubMeterBillingStatusUnpaid SubMeterBillingStatus = "unpaid"
+	SubMeterBillingStatusPaid   SubMeterBillingStatus = "paid"
+)
+
+func (e *SubMeterBillingStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SubMeterBillingStatus(s)
+	case string:
+		*e = SubMeterBillingStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SubMeterBillingStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSubMeterBillingStatus struct {
+	SubMeterBillingStatus SubMeterBillingStatus
+	Valid                 bool // Valid is true if SubMeterBillingStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSubMeterBillingStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SubMeterBillingStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SubMeterBillingStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSubMeterBillingStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SubMeterBillingStatus), nil
+}
+
+func (e SubMeterBillingStatus) Valid() bool {
+	switch e {
+	case SubMeterBillingStatusUnpaid,
+		SubMeterBillingStatusPaid:
+		return true
+	}
+	return false
+}
+
 type MainMeter struct {
 	ID           int32
 	MeterID      string
@@ -74,17 +176,19 @@ type MainMeter struct {
 }
 
 type MainMeterBilling struct {
-	ID                  int32
-	FkMainMeter         int32
-	Subid               int32
-	MaxDayDiff          int32
-	BeginDate           pgtype.Date
-	EndDate             pgtype.Date
-	EnergyConsumption   float64
-	ConsumedEnergyPrice float64
-	ServicePrice        pgtype.Float8
-	AdvancePrice        float64
-	TotalPrice          float64
+	ID                   int32
+	FkMainMeter          int32
+	Subid                int32
+	MaxDayDiff           int32
+	BeginDate            pgtype.Date
+	EndDate              pgtype.Date
+	EnergyConsumption    float64
+	ConsumedEnergyPrice  float64
+	ServicePrice         pgtype.Float8
+	AdvancePrice         float64
+	FromFinancialBalance float64
+	ToPay                float64
+	Status               MainMeterBillingStatus
 }
 
 type MainMeterBillingPeriod struct {
@@ -119,15 +223,17 @@ type SubMeter struct {
 }
 
 type SubMeterBilling struct {
-	ID                  int32
-	FkSubMeter          int32
-	FkMainBilling       int32
-	Subid               int32
-	EnergyConsumption   float64
-	ConsumedEnergyPrice float64
-	ServicePrice        pgtype.Float8
-	AdvancePrice        float64
-	TotalPrice          float64
+	ID                   int32
+	FkSubMeter           int32
+	FkMainBilling        int32
+	Subid                int32
+	EnergyConsumption    float64
+	ConsumedEnergyPrice  float64
+	ServicePrice         pgtype.Float8
+	AdvancePrice         float64
+	FromFinancialBalance float64
+	ToPay                float64
+	Status               SubMeterBillingStatus
 }
 
 type SubMeterBillingPeriod struct {
