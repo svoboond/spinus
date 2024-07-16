@@ -11,6 +11,41 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getMmBill = `-- name: GetMmBill :one
+SELECT mm_bill.id, mm_bill.fk_mm, mm_bill.subid, mm_bill.max_day_diff, mm_bill.begin_date, mm_bill.end_date, mm_bill.energy_consum, mm_bill.consum_energy_price, mm_bill.service_price, mm_bill.advance_price, mm_bill.from_fin_balance, mm_bill.to_pay, mm_bill.status
+FROM mm_bill
+JOIN mm
+	ON mm_bill.fk_mm = mm.id
+WHERE fk_mm = $1 and subid = $2
+LIMIT 1
+`
+
+type GetMmBillParams struct {
+	FkMm  int32
+	Subid int32
+}
+
+func (q *Queries) GetMmBill(ctx context.Context, arg GetMmBillParams) (MmBill, error) {
+	row := q.db.QueryRow(ctx, getMmBill, arg.FkMm, arg.Subid)
+	var i MmBill
+	err := row.Scan(
+		&i.ID,
+		&i.FkMm,
+		&i.Subid,
+		&i.MaxDayDiff,
+		&i.BeginDate,
+		&i.EndDate,
+		&i.EnergyConsum,
+		&i.ConsumEnergyPrice,
+		&i.ServicePrice,
+		&i.AdvancePrice,
+		&i.FromFinBalance,
+		&i.ToPay,
+		&i.Status,
+	)
+	return i, err
+}
+
 const listMmBillSms = `-- name: ListMmBillSms :many
 SELECT
 	sm.id,

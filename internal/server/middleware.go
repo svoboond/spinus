@@ -7,9 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
 )
@@ -68,12 +66,11 @@ func GetMm(ctx context.Context) (spinusdb.GetMmRow, bool) {
 
 func (s *Server) WithMm(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.ParseInt(chi.URLParam(r, "mmID"), 10, 32)
+		mmID, err := GetMmIDUrlParam(r)
 		if err != nil {
 			s.HandleNotFound(w, r)
 			return
 		}
-		mmID := int32(id)
 		ctx := r.Context()
 		userID, ok := UserID(ctx)
 		if !ok {
@@ -110,18 +107,16 @@ func GetSm(ctx context.Context) (spinusdb.GetSmRow, bool) {
 
 func (s *Server) WithSm(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.ParseInt(chi.URLParam(r, "mmID"), 10, 32)
+		mmID, err := GetMmIDUrlParam(r)
 		if err != nil {
 			s.HandleNotFound(w, r)
 			return
 		}
-		mmID := int32(id)
-		id, err = strconv.ParseInt(chi.URLParam(r, "subid"), 10, 32)
+		subid, err := GetSubidUrlParam(r)
 		if err != nil {
 			s.HandleNotFound(w, r)
 			return
 		}
-		subid := int32(id)
 		ctx := r.Context()
 		userID, ok := UserID(ctx)
 		if !ok {

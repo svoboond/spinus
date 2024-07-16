@@ -22,7 +22,7 @@ type SmCreateTmpl struct {
 }
 
 type SmUpperTmpl struct {
-	MmID  int32
+	MmUpperTmpl
 	Subid int32
 }
 
@@ -52,11 +52,11 @@ type MmBillCreateTmpl struct {
 }
 
 type MmBillUpperTmpl struct {
+	MmUpperTmpl
 	Subid int32
 }
 
 type MmBillOverviewTmpl struct {
 	spinusdb.MmBill
-	Upper     MmUpperTmpl
-	BillUpper MmBillUpperTmpl
+	Upper MmBillUpperTmpl
 }

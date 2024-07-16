@@ -543,7 +543,7 @@ func (s *Server) HandleGetSmOverview(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmOverviewTmpl{
 			GetSmRow: sm,
-			Upper:    SmUpperTmpl{MmID: sm.MmID, Subid: sm.Subid},
+			Upper: SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
 		},
 	)
 }
@@ -570,7 +570,7 @@ func (s *Server) HandleGetSmRdgList(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmRdgListTmpl{
 			SmRdgs: smRdgs,
-			Upper:  SmUpperTmpl{MmID: sm.MmID, Subid: subid},
+			Upper: SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
 		},
 	)
 }
@@ -590,7 +590,7 @@ func (s *Server) HandleGetSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmRdgCreateTmpl{
 			SmRdgForm: SmRdgForm{},
-			Upper:     SmUpperTmpl{MmID: sm.MmID, Subid: sm.Subid},
+			Upper: SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
 		},
 	)
 }
@@ -610,7 +610,7 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 	subid := sm.Subid
 	tmplData := SmRdgCreateTmpl{
 		SmRdgForm: SmRdgForm{},
-		Upper:     SmUpperTmpl{MmID: mmID, Subid: subid},
+		Upper: SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
 	}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
@@ -690,7 +690,7 @@ func (s *Server) HandleGetMmBillList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mmID := mm.ID
-	bills, err := s.queries.ListMmBills(r.Context(), mmID)
+	bills, err := s.queries.ListMmBills(ctx, mmID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -715,8 +715,14 @@ func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request)
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
+	subid, err := GetSubidUrlParam(r)
+	if err != nil {
+		s.HandleNotFound(w, r)
+		return
+	}
 	mmID := mm.ID
-	bills, err := s.queries.ListMmBills(r.Context(), mmID)
+	bill, err := s.queries.GetMmBill(
+		ctx, spinusdb.GetMmBillParams{FkMm: mmID, Subid: subid})
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -724,9 +730,9 @@ func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request)
 	}
 	s.renderTemplate(
 		w, r, tmplName,
-		MmBillListTmpl{
-			MmBills: bills,
-			Upper:   MmUpperTmpl{ID: mmID},
+		MmBillOverviewTmpl{
+			MmBill: bill,
+			Upper:  MmBillUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: mmID}, Subid: subid},
 		},
 	)
 }

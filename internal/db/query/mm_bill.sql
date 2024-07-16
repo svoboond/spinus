@@ -4,6 +4,14 @@ FROM mm_bill
 WHERE fk_mm = $1
 ORDER BY subid DESC;
 
+-- name: GetMmBill :one
+SELECT mm_bill.*
+FROM mm_bill
+JOIN mm
+	ON mm_bill.fk_mm = mm.id
+WHERE fk_mm = $1 and subid = $2
+LIMIT 1;
+
 -- name: ListMmBillSms :many
 SELECT
 	sm.id,

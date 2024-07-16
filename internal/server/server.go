@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/alexedwards/scs/goredisstore"
@@ -156,8 +157,8 @@ func New(config *conf.Conf) (*Server, error) {
 			)
 			mmDetailRouter.Get(
 				"/main-meter/{mmID:^[0-9]+$}/"+
-					"billing/{mmBillID:^[0-9]+$}/overview",
-				app.HandleGetMmBillList, // TODO - change and implement
+					"billing/{subid:^[0-9]+$}/overview",
+				app.HandleGetMmBillOverview,
 			)
 		})
 		loggedInRouter.Group(func(smDetailRouter chi.Router) {
@@ -187,6 +188,23 @@ func New(config *conf.Conf) (*Server, error) {
 	})
 
 	return app, nil
+}
+
+func GetMmIDUrlParam(r *http.Request) (int32, error) {
+	var v int32
+	id, err := strconv.ParseInt(chi.URLParam(r, "mmID"), 10, 32)
+	if err != nil {
+		return v, err
+	}
+	return int32(id), err
+}
+func GetSubidUrlParam(r *http.Request) (int32, error) {
+	var v int32
+	id, err := strconv.ParseInt(chi.URLParam(r, "subid"), 10, 32)
+	if err != nil {
+		return v, err
+	}
+	return int32(id), err
 }
 
 func (s *Server) ListenAndServe() error { return s.server.ListenAndServe() }
