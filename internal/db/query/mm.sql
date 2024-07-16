@@ -1,15 +1,15 @@
 -- name: GetMm :one
-SELECT	mm.*, spinus_user.email
-FROM	mm
-JOIN	spinus_user
+SELECT mm.*, spinus_user.email
+FROM mm
+JOIN spinus_user
 	ON mm.fk_user = spinus_user.id
-WHERE	mm.id = $1
-LIMIT	1;
+WHERE mm.id = $1
+LIMIT 1;
 
 -- name: ListUserMms :many
-SELECT	*
-FROM	mm
-WHERE	fk_user = $1
+SELECT *
+FROM mm
+WHERE fk_user = $1
 ORDER BY id;
 
 -- name: CreateMm :one

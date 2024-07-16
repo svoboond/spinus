@@ -40,10 +40,10 @@ func (q *Queries) CreateSmRdg(ctx context.Context, arg CreateSmRdgParams) (SmRdg
 }
 
 const getSmRdgForDate = `-- name: GetSmRdgForDate :one
-SELECT	1
-FROM	sm_rdg
-WHERE	fk_sm = $1 AND rdg_date = $2
-LIMIT	1
+SELECT 1
+FROM sm_rdg
+WHERE fk_sm = $1 AND rdg_date = $2
+LIMIT 1
 `
 
 type GetSmRdgForDateParams struct {
@@ -59,9 +59,9 @@ func (q *Queries) GetSmRdgForDate(ctx context.Context, arg GetSmRdgForDateParams
 }
 
 const listSmRdgs = `-- name: ListSmRdgs :many
-SELECT	id, fk_sm, subid, rdg_val, rdg_date
-FROM	sm_rdg
-WHERE	fk_sm = $1
+SELECT id, fk_sm, subid, rdg_val, rdg_date
+FROM sm_rdg
+WHERE fk_sm = $1
 ORDER BY rdg_date DESC
 `
 

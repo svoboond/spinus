@@ -2,51 +2,61 @@ package server
 
 import spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
 
-type MmTmpl struct {
+type MmUpperTmpl struct {
 	ID int32
 }
 
 type MmOverviewTmpl struct {
 	spinusdb.GetMmRow
-	Upper MmTmpl
+	Upper MmUpperTmpl
 }
 
 type SmListTmpl struct {
 	Sms   []spinusdb.ListSmsRow
-	Upper MmTmpl
+	Upper MmUpperTmpl
 }
 
 type SmCreateTmpl struct {
 	SmForm
-	Upper MmTmpl
+	Upper MmUpperTmpl
 }
 
-type SmTmpl struct {
+type SmUpperTmpl struct {
 	MmID  int32
 	Subid int32
 }
 
 type SmOverviewTmpl struct {
 	spinusdb.GetSmRow
-	Upper SmTmpl
+	Upper SmUpperTmpl
 }
 
 type SmRdgListTmpl struct {
 	SmRdgs []spinusdb.SmRdg
-	Upper  SmTmpl
+	Upper  SmUpperTmpl
 }
 
 type SmRdgCreateTmpl struct {
 	SmRdgForm
-	Upper SmTmpl
+	Upper SmUpperTmpl
 }
 
 type MmBillListTmpl struct {
 	MmBills []spinusdb.MmBill
-	Upper   MmTmpl
+	Upper   MmUpperTmpl
 }
 
 type MmBillCreateTmpl struct {
 	MmBillForm
-	Upper MmTmpl
+	Upper MmUpperTmpl
+}
+
+type MmBillUpperTmpl struct {
+	Subid int32
+}
+
+type MmBillOverviewTmpl struct {
+	spinusdb.MmBill
+	Upper     MmUpperTmpl
+	BillUpper MmBillUpperTmpl
 }

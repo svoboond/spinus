@@ -398,7 +398,7 @@ func (s *Server) HandleGetMmOverview(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		MmOverviewTmpl{
 			GetMmRow: mm,
-			Upper:    MmTmpl{ID: mm.ID},
+			Upper:    MmUpperTmpl{ID: mm.ID},
 		},
 	)
 }
@@ -418,7 +418,7 @@ func (s *Server) HandleGetSmCreate(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmCreateTmpl{
 			SmForm: SmForm{},
-			Upper:  MmTmpl{ID: mm.ID},
+			Upper:  MmUpperTmpl{ID: mm.ID},
 		},
 	)
 }
@@ -442,7 +442,7 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 
 	tmplData := SmCreateTmpl{
 		SmForm: SmForm{},
-		Upper:  MmTmpl{ID: mm.ID},
+		Upper:  MmUpperTmpl{ID: mm.ID},
 	}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
@@ -522,7 +522,7 @@ func (s *Server) HandleGetSmList(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmListTmpl{
 			Sms:   sms,
-			Upper: MmTmpl{ID: mmID},
+			Upper: MmUpperTmpl{ID: mmID},
 		},
 	)
 }
@@ -543,7 +543,7 @@ func (s *Server) HandleGetSmOverview(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmOverviewTmpl{
 			GetSmRow: sm,
-			Upper:    SmTmpl{MmID: sm.MmID, Subid: sm.Subid},
+			Upper:    SmUpperTmpl{MmID: sm.MmID, Subid: sm.Subid},
 		},
 	)
 }
@@ -570,7 +570,7 @@ func (s *Server) HandleGetSmRdgList(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmRdgListTmpl{
 			SmRdgs: smRdgs,
-			Upper:  SmTmpl{MmID: sm.MmID, Subid: subid},
+			Upper:  SmUpperTmpl{MmID: sm.MmID, Subid: subid},
 		},
 	)
 }
@@ -590,7 +590,7 @@ func (s *Server) HandleGetSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmRdgCreateTmpl{
 			SmRdgForm: SmRdgForm{},
-			Upper:     SmTmpl{MmID: sm.MmID, Subid: sm.Subid},
+			Upper:     SmUpperTmpl{MmID: sm.MmID, Subid: sm.Subid},
 		},
 	)
 }
@@ -610,7 +610,7 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 	subid := sm.Subid
 	tmplData := SmRdgCreateTmpl{
 		SmRdgForm: SmRdgForm{},
-		Upper:     SmTmpl{MmID: mmID, Subid: subid},
+		Upper:     SmUpperTmpl{MmID: mmID, Subid: subid},
 	}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
@@ -660,9 +660,9 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 	_, err = s.queries.CreateSmRdg(
 		ctx,
 		spinusdb.CreateSmRdgParams{
-			FkSm:     sm.ID,
-			RdgVal: float64(rdgVal),
-			RdgDate:  rdgDate,
+			FkSm:    sm.ID,
+			RdgVal:  float64(rdgVal),
+			RdgDate: rdgDate,
 		},
 	)
 	if err != nil {
@@ -700,7 +700,33 @@ func (s *Server) HandleGetMmBillList(w http.ResponseWriter, r *http.Request) {
 		w, r, tmplName,
 		MmBillListTmpl{
 			MmBills: bills,
-			Upper:   MmTmpl{ID: mmID},
+			Upper:   MmUpperTmpl{ID: mmID},
+		},
+	)
+}
+
+func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mmBillOverview"
+
+	ctx := r.Context()
+	mm, ok := GetMm(ctx)
+	if !ok {
+		slog.Error("error getting main meter", "mainMeter", mm)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		return
+	}
+	mmID := mm.ID
+	bills, err := s.queries.ListMmBills(r.Context(), mmID)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	s.renderTemplate(
+		w, r, tmplName,
+		MmBillListTmpl{
+			MmBills: bills,
+			Upper:   MmUpperTmpl{ID: mmID},
 		},
 	)
 }
@@ -720,7 +746,7 @@ func (s *Server) HandleGetMmBillCreate(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		MmBillCreateTmpl{
 			MmBillForm: NewMmBillForm(),
-			Upper:      MmTmpl{ID: mm.ID},
+			Upper:      MmUpperTmpl{ID: mm.ID},
 		},
 	)
 }
@@ -746,7 +772,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 			MmBillPeriods: mmBillPeriodForms,
 			SmBills:       smBillForms,
 		},
-		Upper: MmTmpl{ID: mmID},
+		Upper: MmUpperTmpl{ID: mmID},
 	}
 	var formErr bool
 	if err := r.ParseForm(); err != nil {

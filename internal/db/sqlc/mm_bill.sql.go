@@ -12,7 +12,8 @@ import (
 )
 
 const listMmBillSms = `-- name: ListMmBillSms :many
-SELECT	sm.id,
+SELECT
+	sm.id,
 	sm.subid,
 	sm.meter_id,
 	spinus_user.email,
@@ -23,12 +24,12 @@ SELECT	sm.id,
 	from_fin_balance,
 	to_pay,
 	status
-FROM	sm_bill
-JOIN	sm
-	on sm_bill.fk_sm = sm.id
-JOIN	spinus_user
+FROM sm_bill
+JOIN sm
+	ON sm_bill.fk_sm = sm.id
+JOIN spinus_user
 	ON sm.fk_user = spinus_user.id
-WHERE	fk_mm_bill = $1
+WHERE fk_mm_bill = $1
 ORDER BY subid
 `
 
@@ -79,9 +80,9 @@ func (q *Queries) ListMmBillSms(ctx context.Context, fkMmBill int32) ([]ListMmBi
 }
 
 const listMmBills = `-- name: ListMmBills :many
-SELECT	id, fk_mm, subid, max_day_diff, begin_date, end_date, energy_consum, consum_energy_price, service_price, advance_price, from_fin_balance, to_pay, status
-FROM	mm_bill
-WHERE	fk_mm = $1
+SELECT id, fk_mm, subid, max_day_diff, begin_date, end_date, energy_consum, consum_energy_price, service_price, advance_price, from_fin_balance, to_pay, status
+FROM mm_bill
+WHERE fk_mm = $1
 ORDER BY subid DESC
 `
 

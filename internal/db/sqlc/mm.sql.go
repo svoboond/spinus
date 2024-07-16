@@ -55,12 +55,12 @@ func (q *Queries) CreateMm(ctx context.Context, arg CreateMmParams) (Mm, error) 
 }
 
 const getMm = `-- name: GetMm :one
-SELECT	mm.id, mm.meter_id, mm.energy, mm.address, mm.currency_code, mm.fk_user, spinus_user.email
-FROM	mm
-JOIN	spinus_user
+SELECT mm.id, mm.meter_id, mm.energy, mm.address, mm.currency_code, mm.fk_user, spinus_user.email
+FROM mm
+JOIN spinus_user
 	ON mm.fk_user = spinus_user.id
-WHERE	mm.id = $1
-LIMIT	1
+WHERE mm.id = $1
+LIMIT 1
 `
 
 type GetMmRow struct {
@@ -89,9 +89,9 @@ func (q *Queries) GetMm(ctx context.Context, id int32) (GetMmRow, error) {
 }
 
 const listUserMms = `-- name: ListUserMms :many
-SELECT	id, meter_id, energy, address, currency_code, fk_user
-FROM	mm
-WHERE	fk_user = $1
+SELECT id, meter_id, energy, address, currency_code, fk_user
+FROM mm
+WHERE fk_user = $1
 ORDER BY id
 `
 

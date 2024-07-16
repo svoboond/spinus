@@ -250,54 +250,43 @@ func (q *Queries) CreateSmBillPeriod(ctx context.Context, arg CreateSmBillPeriod
 }
 
 const getSmRdgs = `-- name: GetSmRdgs :many
-WITH	selected_sm AS (
-	SELECT	sm.id
-	FROM	sm
-	WHERE	fk_mm = $1
+WITH selected_sm AS (
+	SELECT sm.id
+	FROM sm
+	WHERE fk_mm = $1
 )
-SELECT		later_rdg.sm_id,
-		sm_rdg.rdg_val,
-		sm_rdg.rdg_date
+SELECT later_rdg.sm_id, sm_rdg.rdg_val, sm_rdg.rdg_date
 FROM (
-	SELECT		selected_sm.id AS sm_id,
-			min(sm_rdg.rdg_date) AS rdg_date
-	FROM		selected_sm
-	JOIN		sm_rdg
-	ON		selected_sm.id = sm_rdg.fk_sm
-	WHERE		sm_rdg.rdg_date > $2
-	GROUP BY	selected_sm.id
+	SELECT selected_sm.id AS sm_id, min(sm_rdg.rdg_date) AS rdg_date
+	FROM selected_sm
+	JOIN sm_rdg
+	ON selected_sm.id = sm_rdg.fk_sm
+	WHERE sm_rdg.rdg_date > $2
+	GROUP BY selected_sm.id
 ) later_rdg
-LEFT JOIN	sm_rdg
-ON		later_rdg.sm_id = sm_rdg.fk_sm AND
-		later_rdg.rdg_date = sm_rdg.rdg_date
+LEFT JOIN sm_rdg
+	ON later_rdg.sm_id = sm_rdg.fk_sm AND later_rdg.rdg_date = sm_rdg.rdg_date
 UNION
-SELECT	selected_sm.id AS sm_id,
-	sm_rdg.rdg_val,
-	sm_rdg.rdg_date
-FROM	selected_sm
-JOIN	sm_rdg
-ON	selected_sm.id = sm_rdg.fk_sm
-WHERE	sm_rdg.rdg_date BETWEEN
-	$3 AND $2
+SELECT selected_sm.id AS sm_id, sm_rdg.rdg_val, sm_rdg.rdg_date
+FROM selected_sm
+JOIN sm_rdg
+	ON selected_sm.id = sm_rdg.fk_sm
+WHERE sm_rdg.rdg_date BETWEEN $3 AND $2
 UNION
-SELECT		selected_sm.id AS sm_id,
-		sm_rdg.rdg_val,
-		earlier_rdg.rdg_date
-FROM		selected_sm
+SELECT selected_sm.id AS sm_id, sm_rdg.rdg_val, earlier_rdg.rdg_date
+FROM selected_sm
 LEFT JOIN (
-	SELECT		selected_sm.id AS sm_id,
-			max(sm_rdg.rdg_date) AS rdg_date
-	FROM		selected_sm
-	LEFT JOIN	sm_rdg
-	ON		selected_sm.id = sm_rdg.fk_sm
-	WHERE		sm_rdg.rdg_date < $3
-	GROUP BY	selected_sm.id
+	SELECT selected_sm.id AS sm_id, max(sm_rdg.rdg_date) AS rdg_date
+	FROM selected_sm
+	LEFT JOIN sm_rdg
+		ON	selected_sm.id = sm_rdg.fk_sm
+	WHERE sm_rdg.rdg_date < $3
+	GROUP BY selected_sm.id
 ) earlier_rdg
-ON		selected_sm.id = earlier_rdg.sm_id
-LEFT JOIN	sm_rdg
-ON		earlier_rdg.sm_id = sm_rdg.fk_sm AND
-		earlier_rdg.rdg_date = sm_rdg.rdg_date
-ORDER BY 	rdg_date DESC NULLS LAST
+	ON selected_sm.id = earlier_rdg.sm_id
+LEFT JOIN sm_rdg
+	ON earlier_rdg.sm_id = sm_rdg.fk_sm AND earlier_rdg.rdg_date = sm_rdg.rdg_date
+ORDER BY rdg_date DESC NULLS LAST
 `
 
 type GetSmRdgsParams struct {

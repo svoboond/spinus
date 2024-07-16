@@ -41,10 +41,10 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (SpinusU
 }
 
 const getUser = `-- name: GetUser :one
-SELECT	id, username, email, password
-FROM	spinus_user
-WHERE	username = $1 AND password = crypt($2, password)
-LIMIT	1
+SELECT id, username, email, password
+FROM spinus_user
+WHERE username = $1 AND password = crypt($2, password)
+LIMIT 1
 `
 
 type GetUserParams struct {
@@ -65,10 +65,10 @@ func (q *Queries) GetUser(ctx context.Context, arg GetUserParams) (SpinusUser, e
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT	1
-FROM	spinus_user
-WHERE	email = $1
-LIMIT	1
+SELECT 1
+FROM spinus_user
+WHERE email = $1
+LIMIT 1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (int32, error) {
@@ -79,10 +79,10 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (int32, erro
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT	1
-FROM	spinus_user
-WHERE	username = $1
-LIMIT	1
+SELECT 1
+FROM spinus_user
+WHERE username = $1
+LIMIT 1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (int32, error) {

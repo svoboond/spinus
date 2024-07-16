@@ -47,7 +47,8 @@ func (q *Queries) CreateSm(ctx context.Context, arg CreateSmParams) (Sm, error) 
 }
 
 const getSm = `-- name: GetSm :one
-SELECT	sm.id,
+SELECT
+	sm.id,
 	sm.fk_mm AS mm_id,
 	sm.subid,
 	sm.meter_id AS sm_id,
@@ -57,14 +58,14 @@ SELECT	sm.id,
 	mm.address,
 	mm.fk_user AS main_user_id,
 	main_user.email AS main_user_email
-FROM	sm
-JOIN	mm
+FROM sm
+JOIN mm
 	ON sm.fk_mm = mm.id
-JOIN	spinus_user AS sub_user
+JOIN spinus_user AS sub_user
 	ON sm.fk_user = sub_user.id
-JOIN	spinus_user AS main_user
+JOIN spinus_user AS main_user
 	ON mm.fk_user = main_user.id
-WHERE	fk_mm = $1 AND subid = $2
+WHERE fk_mm = $1 AND subid = $2
 LIMIT 1
 `
 
@@ -105,15 +106,11 @@ func (q *Queries) GetSm(ctx context.Context, arg GetSmParams) (GetSmRow, error) 
 }
 
 const listSms = `-- name: ListSms :many
-SELECT	sm.id,
-	subid,
-	meter_id,
-	fin_balance,
-	email
-FROM	sm
-JOIN	spinus_user
+SELECT sm.id, subid, meter_id, fin_balance, email
+FROM sm
+JOIN spinus_user
 	ON sm.fk_user = spinus_user.id
-WHERE	fk_mm = $1
+WHERE fk_mm = $1
 ORDER BY subid
 `
 
@@ -152,9 +149,9 @@ func (q *Queries) ListSms(ctx context.Context, fkMm int32) ([]ListSmsRow, error)
 }
 
 const updateSmFinBalance = `-- name: UpdateSmFinBalance :exec
-UPDATE	sm
-SET	fin_balance = $2
-WHERE	id = $1
+UPDATE sm
+SET fin_balance = $2
+WHERE id = $1
 `
 
 type UpdateSmFinBalanceParams struct {
