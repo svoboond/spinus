@@ -63,10 +63,10 @@ func parsePassword(s string) (Password, error) {
 	}
 }
 
-type MainMeterID string
+type MmID string
 
-func parseMainMeterID(s string) (MainMeterID, error) {
-	v := MainMeterID(strings.TrimSpace(s))
+func parseMmID(s string) (MmID, error) {
+	v := MmID(strings.TrimSpace(s))
 	vLen := len(s)
 	switch {
 	case s == "":
@@ -105,10 +105,20 @@ func parseEnergy(s string) (spinusdb.Energy, error) {
 	return v, nil
 }
 
-type SubMeterID string
+type CurrencyCode string
 
-func parseSubMeterID(s string) (SubMeterID, error) {
-	v := SubMeterID(strings.TrimSpace(s))
+func parseCurrencyCode(s string) (CurrencyCode, error) {
+	v := CurrencyCode(strings.TrimSpace(s))
+	if len(v) != 3 {
+		return v, errors.New("Enter currency code with 3 characters.")
+	}
+	return v, nil
+}
+
+type SmID string
+
+func parseSmID(s string) (SmID, error) {
+	v := SmID(strings.TrimSpace(s))
 	vLen := len(s)
 	switch {
 	case v == "":
@@ -120,10 +130,21 @@ func parseSubMeterID(s string) (SubMeterID, error) {
 	}
 }
 
-type ReadingValue float64
+type FinBalance float64
 
-func parseReadingValue(s string) (ReadingValue, error) {
-	var v ReadingValue
+func parseFinBalance(s string) (FinBalance, error) {
+	var v FinBalance
+	p, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return v, errors.New("Enter valid financial balance.")
+	}
+	return FinBalance(p), nil
+}
+
+type RdgVal float64
+
+func parseRdgVal(s string) (RdgVal, error) {
+	var v RdgVal
 	p, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return v, errors.New("Enter valid reading value.")
@@ -131,7 +152,7 @@ func parseReadingValue(s string) (ReadingValue, error) {
 	if p < 0 {
 		return v, errors.New("Enter reading value that is no less than 0.")
 	}
-	return ReadingValue(p), nil
+	return RdgVal(p), nil
 }
 
 type Time struct {
@@ -165,10 +186,10 @@ func parseMaxDayDiff(s string) (MaxDayDiff, error) {
 	}
 }
 
-type ConsumedEnergyPrice float64
+type ConsumEnergyPrice float64
 
-func parseConsumedEnergyPrice(s string) (ConsumedEnergyPrice, error) {
-	var v ConsumedEnergyPrice
+func parseConsumEnergyPrice(s string) (ConsumEnergyPrice, error) {
+	var v ConsumEnergyPrice
 	p, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return v, errors.New("Enter valid consumed energy price.")
@@ -176,7 +197,7 @@ func parseConsumedEnergyPrice(s string) (ConsumedEnergyPrice, error) {
 	if p < 0.0 {
 		return v, errors.New("Enter consumed energy price that is no less than 0.")
 	}
-	return ConsumedEnergyPrice(p), nil
+	return ConsumEnergyPrice(p), nil
 }
 
 type ServicePrice struct {

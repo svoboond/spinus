@@ -24,7 +24,7 @@ func WithCacheControl(h http.Handler, maxAge int) http.Handler {
 }
 
 const userIDKey = "userID"
-const emptyUserIDValue int32 = 0
+const emptyUserIDVal int32 = 0
 
 func UserID(ctx context.Context) (int32, bool) {
 	id, ok := ctx.Value(userIDKey).(int32)
@@ -48,7 +48,7 @@ func (s *Server) WithRequiredLogin(h http.Handler) http.Handler {
 			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 			return
 		}
-		if userID == emptyUserIDValue {
+		if userID == emptyUserIDVal {
 			query := r.URL.Query()
 			query.Add("next", r.URL.Path)
 			redirectUrl := url.URL{Path: "/login", RawQuery: query.Encode()}
@@ -59,21 +59,21 @@ func (s *Server) WithRequiredLogin(h http.Handler) http.Handler {
 	})
 }
 
-const mainMeterKey = "mainMeter"
+const mmKey = "mainMeter"
 
-func GetMainMeter(ctx context.Context) (spinusdb.GetMainMeterRow, bool) {
-	mainMeter, ok := ctx.Value(mainMeterKey).(spinusdb.GetMainMeterRow)
-	return mainMeter, ok
+func GetMm(ctx context.Context) (spinusdb.GetMmRow, bool) {
+	mm, ok := ctx.Value(mmKey).(spinusdb.GetMmRow)
+	return mm, ok
 }
 
-func (s *Server) WithMainMeter(h http.Handler) http.Handler {
+func (s *Server) WithMm(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterID"), 10, 32)
+		id, err := strconv.ParseInt(chi.URLParam(r, "mmID"), 10, 32)
 		if err != nil {
 			s.HandleNotFound(w, r)
 			return
 		}
-		mainMeterID := int32(id)
+		mmID := int32(id)
 		ctx := r.Context()
 		userID, ok := UserID(ctx)
 		if !ok {
@@ -81,7 +81,7 @@ func (s *Server) WithMainMeter(h http.Handler) http.Handler {
 			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 			return
 		}
-		mainMeter, err := s.queries.GetMainMeter(ctx, mainMeterID)
+		mm, err := s.queries.GetMm(ctx, mmID)
 		if err != nil {
 			if err == pgx.ErrNoRows {
 				s.HandleNotFound(w, r)
@@ -91,37 +91,37 @@ func (s *Server) WithMainMeter(h http.Handler) http.Handler {
 			s.HandleInternalServerError(w, r, err)
 			return
 		}
-		if userID != mainMeter.FkUser {
+		if userID != mm.FkUser {
 			s.HandleForbidden(w, r)
 			return
 		}
 		ctx = context.WithValue(ctx, userIDKey, userID)
-		ctx = context.WithValue(ctx, mainMeterKey, mainMeter)
+		ctx = context.WithValue(ctx, mmKey, mm)
 		h.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-const subMeterKey = "subMeter"
+const smKey = "subMeter"
 
-func GetSubMeter(ctx context.Context) (spinusdb.GetSubMeterRow, bool) {
-	subMeter, ok := ctx.Value(subMeterKey).(spinusdb.GetSubMeterRow)
-	return subMeter, ok
+func GetSm(ctx context.Context) (spinusdb.GetSmRow, bool) {
+	sm, ok := ctx.Value(smKey).(spinusdb.GetSmRow)
+	return sm, ok
 }
 
-func (s *Server) WithSubMeter(h http.Handler) http.Handler {
+func (s *Server) WithSm(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.ParseInt(chi.URLParam(r, "mainMeterID"), 10, 32)
+		id, err := strconv.ParseInt(chi.URLParam(r, "mmID"), 10, 32)
 		if err != nil {
 			s.HandleNotFound(w, r)
 			return
 		}
-		mainMeterID := int32(id)
-		id, err = strconv.ParseInt(chi.URLParam(r, "subMeterID"), 10, 32)
+		mmID := int32(id)
+		id, err = strconv.ParseInt(chi.URLParam(r, "subid"), 10, 32)
 		if err != nil {
 			s.HandleNotFound(w, r)
 			return
 		}
-		subMeterID := int32(id)
+		subid := int32(id)
 		ctx := r.Context()
 		userID, ok := UserID(ctx)
 		if !ok {
@@ -129,9 +129,9 @@ func (s *Server) WithSubMeter(h http.Handler) http.Handler {
 			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 			return
 		}
-		subMeter, err := s.queries.GetSubMeter(
+		sm, err := s.queries.GetSm(
 			ctx,
-			spinusdb.GetSubMeterParams{FkMainMeter: mainMeterID, Subid: subMeterID},
+			spinusdb.GetSmParams{FkMm: mmID, Subid: subid},
 		)
 		if err != nil {
 			if err == pgx.ErrNoRows {
@@ -142,12 +142,12 @@ func (s *Server) WithSubMeter(h http.Handler) http.Handler {
 			s.HandleInternalServerError(w, r, err)
 			return
 		}
-		if userID != subMeter.SubUserID || userID != subMeter.MainUserID {
+		if userID != sm.SubUserID || userID != sm.MainUserID {
 			s.HandleForbidden(w, r)
 			return
 		}
 		ctx = context.WithValue(ctx, userIDKey, userID)
-		ctx = context.WithValue(ctx, subMeterKey, subMeter)
+		ctx = context.WithValue(ctx, smKey, sm)
 		h.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

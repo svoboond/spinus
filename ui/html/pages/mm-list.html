@@ -1,20 +1,25 @@
-{{ define "mainMeterOverview" }}
+{{ define "mmList" }}
 <main>
-	{{ template "mainMeterUpper" .Upper }}
-	<h1>Main Meter Overview</h1>
+	<h1>My Main Meters</h1>
+        <li><a href="/main-meter/new">New Main Meter</a></li>
 	<table>
 		<tr>
 			<th>ID</th>
 			<th>Meter Identification</th>
 			<th>Energy</th>
 			<th>Address</th>
+			<th>Currency Code</th>
 		</tr>
+		{{ range . }}
 		<tr>
 			<td>{{ .ID }}</td>
 			<td>{{ .MeterID }}</td>
 			<td>{{ .Energy }}</td>
 			<td>{{ .Address }}</td>
+			<td>{{ .CurrencyCode }}</td>
+			<td><a href="/main-meter/{{ .ID }}/overview">Detail</a></td>
 		</tr>
+		{{ end }}
 	</table>
 </main>
 {{ template "lower" }}

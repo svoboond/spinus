@@ -71,19 +71,19 @@ func New(localPath string) (*Conf, error) {
 
 func mergeConfMaps(s, d map[string]any) map[string]any {
 	out := make(map[string]any, len(s))
-	for sKey, sValue := range s {
-		if sMap, ok := sValue.(map[string]any); ok {
-			if dValue, ok := d[sKey]; ok {
-				if dType, ok := dValue.(map[string]any); ok {
+	for sKey, sVal := range s {
+		if sMap, ok := sVal.(map[string]any); ok {
+			if dVal, ok := d[sKey]; ok {
+				if dType, ok := dVal.(map[string]any); ok {
 					out[sKey] = mergeConfMaps(sMap, dType)
 					continue
 				}
 			}
-		} else if dValue, ok := d[sKey]; ok {
-			out[sKey] = dValue
+		} else if dVal, ok := d[sKey]; ok {
+			out[sKey] = dVal
 			continue
 		}
-		out[sKey] = sValue
+		out[sKey] = sVal
 	}
 	return out
 }

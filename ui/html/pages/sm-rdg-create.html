@@ -1,0 +1,28 @@
+{{ define "smRdgCreate" }}
+<main>
+	{{ template "smUpper" .Upper }}
+	<h1>New Sub Meter Reading</h1>
+	<form method="post">
+		{{ with .GeneralErr }}
+		<span class="error">{{ . }}</span>
+		{{ end }}
+
+		<label for="rdg-val">Value (Required)</label>
+		<input type="number" step="0.001" name="rdg-val" id="rdg-val" min="0" required
+			{{ with .RdgVal }} value="{{ . }}" {{ end }}>
+		{{ with .RdgValErr }}
+		<label class="error" for="rdg-val">{{ . }}</label>
+		{{ end }}
+
+		<label for="rdg-date">Date (Required)</label>
+		<input type="date" name="rdg-date" id="rdg-date" required
+			{{ with .RdgDate }} value="{{ . }}" {{ end }}>
+		{{ with .RdgDateErr }}
+		<label class="error" for="rdg-date">{{ . }}</label>
+		{{ end }}
+
+		<input type="submit" value="Create">
+	</form>
+</main>
+{{ template "lower" }}
+{{ end }}

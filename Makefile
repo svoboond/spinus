@@ -1,5 +1,7 @@
-.PHONY: browser build-nocache clean helm-dependency-update helm-lint hosts mrproper namespace run \
-	sqlc-delete sqlc-run sqlc-generate up
+.PHONY: browser build-nocache clean \
+	helm-dependency-update helm-lint \
+	hosts mrproper namespace run \
+	sqlc-clean sqlc-delete sqlc-run sqlc-generate up
 
 browser:
 	xdg-open http://spinus.local
@@ -28,13 +30,16 @@ namespace:
 run: helm-dependency-update
 	skaffold run --tail
 
+sqlc-clean:
+	rm -rf internal/db/sqlc/*
+
 sqlc-delete:
 	skaffold --filename=tools/sqlc/skaffold.yaml delete
 
 sqlc-run:
 	skaffold --filename=tools/sqlc/skaffold.yaml run
 
-sqlc-generate: sqlc-run
+sqlc-generate: sqlc-clean sqlc-run
 	kubectl -n spinus-local-dev exec spinus-sqlc-local-dev-0 -- ./spinus-sqlc-generate --config local-conf.yaml
 	kubectl -n spinus-local-dev cp spinus-sqlc-local-dev-0:/app/internal/db/sqlc internal/db/sqlc
 	$(MAKE) --no-print-directory sqlc-delete

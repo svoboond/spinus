@@ -1,17 +1,24 @@
-{{ define "subMeterCreate" }}
+{{ define "smCreate" }}
 <main>
-    {{ template "mainMeterUpper" .Upper }}
+    {{ template "mmUpper" .Upper }}
 	<h1>New Sub Meter</h1>
 	<form method="post">
-		{{ with .GeneralError }}
-		<span class="error">Error: {{ . }}</span>
+		{{ with .GeneralErr }}
+		<span class="error">{{ . }}</span>
 		{{ end }}
 
 		<label for="meter-identification">Meter Identification</label>
 		<input type="text" name="meter-identification" id="meter-identification" maxlength="64"
 			{{ with .MeterID }} value="{{ . }}" {{ end }}>
-		{{ with .MeterIDError }}
+		{{ with .MeterIDErr }}
 		<label class="error" for="meter-identification">{{ . }}</label>
+		{{ end }}
+
+		<label for="fin-balance">Financial Balance</label>
+		<input type="number" step="0.001" name="fin-balance" id="fin-balance" required
+			{{ with .FinBalance }} value="{{ . }}" {{ end }}>
+		{{ with .FinBalanceErr }}
+		<label class="error" for="fin-balance">{{ . }}</label>
 		{{ end }}
 
 		<input type="submit" value="Create">

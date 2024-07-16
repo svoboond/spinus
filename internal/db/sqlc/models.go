@@ -64,41 +64,188 @@ func (e Energy) Valid() bool {
 	return false
 }
 
-type MainMeter struct {
+type MmBillStatus string
+
+const (
+	MmBillStatusInprogress MmBillStatus = "in progress"
+	MmBillStatusCompleted  MmBillStatus = "completed"
+)
+
+func (e *MmBillStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MmBillStatus(s)
+	case string:
+		*e = MmBillStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MmBillStatus: %T", src)
+	}
+	return nil
+}
+
+type NullMmBillStatus struct {
+	MmBillStatus MmBillStatus
+	Valid        bool // Valid is true if MmBillStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMmBillStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.MmBillStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MmBillStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMmBillStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MmBillStatus), nil
+}
+
+func (e MmBillStatus) Valid() bool {
+	switch e {
+	case MmBillStatusInprogress,
+		MmBillStatusCompleted:
+		return true
+	}
+	return false
+}
+
+type SmBillStatus string
+
+const (
+	SmBillStatusUnpaid SmBillStatus = "unpaid"
+	SmBillStatusPaid   SmBillStatus = "paid"
+)
+
+func (e *SmBillStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SmBillStatus(s)
+	case string:
+		*e = SmBillStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SmBillStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSmBillStatus struct {
+	SmBillStatus SmBillStatus
+	Valid        bool // Valid is true if SmBillStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSmBillStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SmBillStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SmBillStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSmBillStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SmBillStatus), nil
+}
+
+func (e SmBillStatus) Valid() bool {
+	switch e {
+	case SmBillStatusUnpaid,
+		SmBillStatusPaid:
+		return true
+	}
+	return false
+}
+
+type Mm struct {
+	ID           int32
+	MeterID      string
+	Energy       Energy
+	Address      string
+	CurrencyCode string
+	FkUser       int32
+}
+
+type MmBill struct {
+	ID                int32
+	FkMm              int32
+	Subid             int32
+	MaxDayDiff        int32
+	BeginDate         pgtype.Date
+	EndDate           pgtype.Date
+	EnergyConsum      float64
+	ConsumEnergyPrice float64
+	ServicePrice      pgtype.Float8
+	AdvancePrice      float64
+	FromFinBalance    float64
+	ToPay             float64
+	Status            MmBillStatus
+}
+
+type MmBillPeriod struct {
+	ID                int32
+	FkMmBill          int32
+	Subid             int32
+	BeginDate         pgtype.Date
+	EndDate           pgtype.Date
+	BeginRdgVal       float64
+	EndRdgVal         float64
+	EnergyConsum      float64
+	ConsumEnergyPrice float64
+	ServicePrice      pgtype.Float8
+	AdvancePrice      float64
+	TotalPrice        float64
+}
+
+type Sm struct {
+	ID         int32
+	FkMm       int32
+	Subid      int32
+	MeterID    pgtype.Text
+	FinBalance float64
+	FkUser     int32
+}
+
+type SmBill struct {
+	ID                int32
+	FkSm              int32
+	FkMmBill          int32
+	Subid             int32
+	EnergyConsum      float64
+	ConsumEnergyPrice float64
+	ServicePrice      pgtype.Float8
+	AdvancePrice      float64
+	FromFinBalance    float64
+	ToPay             float64
+	Status            SmBillStatus
+}
+
+type SmBillPeriod struct {
+	ID                int32
+	FkSmBill          int32
+	FkMmBillPeriod    int32
+	EnergyConsum      float64
+	ConsumEnergyPrice float64
+	ServicePrice      pgtype.Float8
+	AdvancePrice      float64
+	TotalPrice        float64
+}
+
+type SmRdg struct {
 	ID      int32
-	MeterID string
-	Energy  Energy
-	Address string
-	FkUser  int32
-}
-
-type MainMeterBilling struct {
-	ID                  int32
-	FkMainMeter         int32
-	Subid               int32
-	MaxDayDiff          int32
-	BeginDate           pgtype.Date
-	EndDate             pgtype.Date
-	EnergyConsumption   float64
-	ConsumedEnergyPrice float64
-	ServicePrice        pgtype.Float8
-	AdvancePrice        float64
-	TotalPrice          float64
-}
-
-type MainMeterBillingPeriod struct {
-	ID                  int32
-	FkMainBilling       int32
-	Subid               int32
-	BeginDate           pgtype.Date
-	EndDate             pgtype.Date
-	BeginReadingValue   float64
-	EndReadingValue     float64
-	EnergyConsumption   float64
-	ConsumedEnergyPrice float64
-	ServicePrice        pgtype.Float8
-	AdvancePrice        float64
-	TotalPrice          float64
+	FkSm    int32
+	Subid   int32
+	RdgVal  float64
+	RdgDate pgtype.Date
 }
 
 type SpinusUser struct {
@@ -106,43 +253,4 @@ type SpinusUser struct {
 	Username string
 	Email    string
 	Password string
-}
-
-type SubMeter struct {
-	ID          int32
-	FkMainMeter int32
-	Subid       int32
-	MeterID     pgtype.Text
-	FkUser      int32
-}
-
-type SubMeterBilling struct {
-	ID                  int32
-	FkSubMeter          int32
-	FkMainBilling       int32
-	Subid               int32
-	EnergyConsumption   float64
-	ConsumedEnergyPrice float64
-	ServicePrice        pgtype.Float8
-	AdvancePrice        float64
-	TotalPrice          float64
-}
-
-type SubMeterBillingPeriod struct {
-	ID                  int32
-	FkSubBilling        int32
-	FkMainBillingPeriod int32
-	EnergyConsumption   float64
-	ConsumedEnergyPrice float64
-	ServicePrice        pgtype.Float8
-	AdvancePrice        float64
-	TotalPrice          float64
-}
-
-type SubMeterReading struct {
-	ID           int32
-	FkSubMeter   int32
-	Subid        int32
-	ReadingValue float64
-	ReadingDate  pgtype.Date
 }

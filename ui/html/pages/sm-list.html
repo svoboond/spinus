@@ -1,20 +1,22 @@
-{{ define "subMeterList" }}
+{{ define "smList" }}
 <main>
-	{{ template "mainMeterUpper" .Upper }}
+	{{ template "mmUpper" .Upper }}
 	<h1>Sub Meters</h1>
         <li><a href="/main-meter/{{ .Upper.ID }}/sub-meter/new">New Sub Meter</a></li>
 	<table>
 		<tr>
 			<th>SubID</th>
 			<th>Meter Identification</th>
+			<th>Financial Balance</th>
 			<th>User Email</th>
 		</tr>
-		{{ range .SubMeters }}
+		{{ range .Sms }}
 		<tr>
 			<td>{{ .Subid }}</td>
 			{{ with .MeterID }}
 			<td>{{ .String }}</td>
 			{{ end }}
+			<td>{{ .FinBalance }}</td>
 			<td>{{ .Email }}</td>
 			<td><a href="/main-meter/{{ $.Upper.ID }}/sub-meter/{{ .Subid }}/overview">Detail</a></td>
 		</tr>

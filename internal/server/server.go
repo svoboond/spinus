@@ -120,63 +120,68 @@ func New(config *conf.Conf) (*Server, error) {
 		loggedInRouter.Use(router.Middlewares()...)
 		loggedInRouter.Use(app.WithRequiredLogin)
 		loggedInRouter.Post("/logout", app.HandlePostLogOut)
-		loggedInRouter.Get("/main-meter/list", app.HandleGetMainMeterList)
-		loggedInRouter.Get("/main-meter/new", app.HandleGetMainMeterCreate)
-		loggedInRouter.Post("/main-meter/new", app.HandlePostMainMeterCreate)
-		loggedInRouter.Group(func(mainMeterDetailRouter chi.Router) {
-			mainMeterDetailRouter.Use(loggedInRouter.Middlewares()...)
-			mainMeterDetailRouter.Use(app.WithMainMeter)
-			mainMeterDetailRouter.Get(
-				"/main-meter/{mainMeterID:^[0-9]+$}/overview",
-				app.HandleGetMainMeterOverview,
+		loggedInRouter.Get("/main-meter/list", app.HandleGetMmList)
+		loggedInRouter.Get("/main-meter/new", app.HandleGetMmCreate)
+		loggedInRouter.Post("/main-meter/new", app.HandlePostMmCreate)
+		loggedInRouter.Group(func(mmDetailRouter chi.Router) {
+			mmDetailRouter.Use(loggedInRouter.Middlewares()...)
+			mmDetailRouter.Use(app.WithMm)
+			mmDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/overview",
+				app.HandleGetMmOverview,
 			)
-			mainMeterDetailRouter.Get(
-				"/main-meter/{mainMeterID:^[0-9]+$}/sub-meter/list",
-				app.HandleGetSubMeterList,
+			mmDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/sub-meter/list",
+				app.HandleGetSmList,
 			)
-			mainMeterDetailRouter.Get(
-				"/main-meter/{mainMeterID:^[0-9]+$}/sub-meter/new",
-				app.HandleGetSubMeterCreate,
+			mmDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/sub-meter/new",
+				app.HandleGetSmCreate,
 			)
-			mainMeterDetailRouter.Post(
-				"/main-meter/{mainMeterID:^[0-9]+$}/sub-meter/new",
-				app.HandlePostSubMeterCreate,
+			mmDetailRouter.Post(
+				"/main-meter/{mmID:^[0-9]+$}/sub-meter/new",
+				app.HandlePostSmCreate,
 			)
-			mainMeterDetailRouter.Get(
-				"/main-meter/{mainMeterID:^[0-9]+$}/billing/list",
-				app.HandleGetMainMeterBillingList,
+			mmDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/billing/list",
+				app.HandleGetMmBillList,
 			)
-			mainMeterDetailRouter.Get(
-				"/main-meter/{mainMeterID:^[0-9]+$}/billing/new",
-				app.HandleGetMainMeterBillingCreate,
+			mmDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/billing/new",
+				app.HandleGetMmBillCreate,
 			)
-			mainMeterDetailRouter.Post(
-				"/main-meter/{mainMeterID:^[0-9]+$}/billing/new",
-				app.HandlePostMainMeterBillingCreate,
+			mmDetailRouter.Post(
+				"/main-meter/{mmID:^[0-9]+$}/billing/new",
+				app.HandlePostMmBillCreate,
+			)
+			mmDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/"+
+					"billing/{mmBillID:^[0-9]+$}/overview",
+				app.HandleGetMmBillList, // TODO - change and implement
 			)
 		})
-		loggedInRouter.Group(func(subMeterDetailRouter chi.Router) {
-			subMeterDetailRouter.Use(loggedInRouter.Middlewares()...)
-			subMeterDetailRouter.Use(app.WithSubMeter)
-			subMeterDetailRouter.Get(
-				"/main-meter/{mainMeterID:^[0-9]+$}/"+
-					"sub-meter/{subMeterID:^[0-9]+$}/overview",
-				app.HandleGetSubMeterOverview,
+		loggedInRouter.Group(func(smDetailRouter chi.Router) {
+			smDetailRouter.Use(loggedInRouter.Middlewares()...)
+			smDetailRouter.Use(app.WithSm)
+			smDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/"+
+					"sub-meter/{subid:^[0-9]+$}/overview",
+				app.HandleGetSmOverview,
 			)
-			subMeterDetailRouter.Get(
-				"/main-meter/{mainMeterID:^[0-9]+$}/"+
-					"sub-meter/{subMeterID:^[0-9]+$}/reading/list",
-				app.HandleGetSubMeterReadingList,
+			smDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/"+
+					"sub-meter/{subid:^[0-9]+$}/reading/list",
+				app.HandleGetSmRdgList,
 			)
-			subMeterDetailRouter.Get(
-				"/main-meter/{mainMeterID:^[0-9]+$}/"+
-					"sub-meter/{subMeterID:^[0-9]+$}/reading/new",
-				app.HandleGetSubMeterReadingCreate,
+			smDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/"+
+					"sub-meter/{subid:^[0-9]+$}/reading/new",
+				app.HandleGetSmRdgCreate,
 			)
-			subMeterDetailRouter.Post(
-				"/main-meter/{mainMeterID:^[0-9]+$}/"+
-					"sub-meter/{subMeterID:^[0-9]+$}/reading/new",
-				app.HandlePostSubMeterReadingCreate,
+			smDetailRouter.Post(
+				"/main-meter/{mmID:^[0-9]+$}/"+
+					"sub-meter/{subid:^[0-9]+$}/reading/new",
+				app.HandlePostSmRdgCreate,
 			)
 		})
 	})

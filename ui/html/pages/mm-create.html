@@ -1,15 +1,15 @@
-{{ define "mainMeterCreate" }}
+{{ define "mmCreate" }}
 <main>
 	<h1>New Main Meter</h1>
 	<form method="post">
-		{{ with .GeneralError }}
-		<span class="error">Error: {{ . }}</span>
+		{{ with .GeneralErr }}
+		<span class="error">{{ . }}</span>
 		{{ end }}
 
 		<label for="meter-identification">Meter Identification (Required)</label>
 		<input type="text" name="meter-identification" id="meter-identification" minlength="3" maxlength="64" required
 			{{ with .MeterID }} value="{{ . }}" {{ end }}>
-		{{ with .MeterIDError }}
+		{{ with .MeterIDErr }}
 		<label class="error" for="meter-identification">{{ . }}</label>
 		{{ end }}
 
@@ -20,15 +20,22 @@
 			<option value="gas" {{ if eq .Energy "gas" }} selected {{ end }}>Gas</option>
 			<option value="water" {{ if eq .Energy "water" }} selected {{ end }}>Water</option>
 		</select>
-		{{ with .EnergyError }}
+		{{ with .EnergyErr }}
 		<label class="error" for="energy">{{ . }}</label>
 		{{ end }}
 
 		<label for="address">Address (Required)</label>
 		<input type="text" name="address" id="address" minlength="8" maxlength="255" required
 			{{ with .Address }} value="{{ . }}" {{ end }}>
-		{{ with .AddressError }}
+		{{ with .AddressErr }}
 		<label class="error" for="address">{{ . }}</label>
+		{{ end }}
+
+		<label for="currency-code">Currency Code (Required)</label>
+		<input type="text" name="currency-code" id="currency-code" minlength="3" maxlength="3" required
+			{{ with .CurrencyCode }} value="{{ . }}" {{ end }}>
+		{{ with .CurrencyCodeErr }}
+		<label class="error" for="currency-code">{{ . }}</label>
 		{{ end }}
 
 		<input type="submit" value="Create">

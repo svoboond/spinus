@@ -11,21 +11,25 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO spinus_user (
-	username, email, password
+	username,
+	email,
+	password
 ) VALUES (
-	$1, $2, crypt($3, gen_salt('bf'))
+	TRIM($1),
+	$2,
+	crypt($3, gen_salt('bf'))
 )
 RETURNING id, username, email, password
 `
 
 type CreateUserParams struct {
-	Username string
-	Email    string
-	Crypt    string
+	Username      string
+	Email         string
+	PasswordCrypt string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (SpinusUser, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Email, arg.Crypt)
+	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Email, arg.PasswordCrypt)
 	var i SpinusUser
 	err := row.Scan(
 		&i.ID,
@@ -37,18 +41,19 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (SpinusU
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, email, password FROM spinus_user
-WHERE username = $1 AND password = crypt($2, password)
-LIMIT 1
+SELECT	id, username, email, password
+FROM	spinus_user
+WHERE	username = $1 AND password = crypt($2, password)
+LIMIT	1
 `
 
 type GetUserParams struct {
-	Username string
-	Crypt    string
+	Username      string
+	PasswordCrypt string
 }
 
 func (q *Queries) GetUser(ctx context.Context, arg GetUserParams) (SpinusUser, error) {
-	row := q.db.QueryRow(ctx, getUser, arg.Username, arg.Crypt)
+	row := q.db.QueryRow(ctx, getUser, arg.Username, arg.PasswordCrypt)
 	var i SpinusUser
 	err := row.Scan(
 		&i.ID,
@@ -60,9 +65,10 @@ func (q *Queries) GetUser(ctx context.Context, arg GetUserParams) (SpinusUser, e
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT 1 FROM spinus_user
-WHERE email = $1
-LIMIT 1
+SELECT	1
+FROM	spinus_user
+WHERE	email = $1
+LIMIT	1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (int32, error) {
@@ -73,9 +79,10 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (int32, erro
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT 1 FROM spinus_user
-WHERE username = $1
-LIMIT 1
+SELECT	1
+FROM	spinus_user
+WHERE	username = $1
+LIMIT	1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (int32, error) {

@@ -1,20 +1,22 @@
-{{ define "subMeterOverview" }}
+{{ define "smOverview" }}
 <main>
-	{{ template "subMeterUpper" .Upper }}
+	{{ template "smUpper" .Upper }}
 	<h1>Sub Meter Overview</h1>
 	<table>
 		<tr>
 			<th>SubID</th>
 			<th>Meter Identification</th>
+			<th>Financial Balance</th>
 			<th>User Email</th>
 			<th>Address</th>
 			<th>Main Meter User Email</th>
 		</tr>
 		<tr>
 			<td>{{ .Subid }}</td>
-			{{ with .SubMeterID }}
+			{{ with .SmID }}
 			<td>{{ .String }}</td>
 			{{ end }}
+			<td>{{ .FinBalance }}</td>
 			<td>{{ .SubUserEmail }}</td>
 			<td>{{ .Address }}</td>
 			<td>{{ .MainUserEmail }}</td>
