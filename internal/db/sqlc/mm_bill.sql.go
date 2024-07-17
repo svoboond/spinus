@@ -16,17 +16,17 @@ SELECT mm_bill.id, mm_bill.fk_mm, mm_bill.subid, mm_bill.max_day_diff, mm_bill.b
 FROM mm_bill
 JOIN mm
 	ON mm_bill.fk_mm = mm.id
-WHERE fk_mm = $1 and subid = $2
+WHERE mm.id = $1 and subid = $2
 LIMIT 1
 `
 
 type GetMmBillParams struct {
-	FkMm  int32
+	ID    int32
 	Subid int32
 }
 
 func (q *Queries) GetMmBill(ctx context.Context, arg GetMmBillParams) (MmBill, error) {
-	row := q.db.QueryRow(ctx, getMmBill, arg.FkMm, arg.Subid)
+	row := q.db.QueryRow(ctx, getMmBill, arg.ID, arg.Subid)
 	var i MmBill
 	err := row.Scan(
 		&i.ID,
@@ -44,6 +44,55 @@ func (q *Queries) GetMmBill(ctx context.Context, arg GetMmBillParams) (MmBill, e
 		&i.Status,
 	)
 	return i, err
+}
+
+const listMmBillPeriods = `-- name: ListMmBillPeriods :many
+SELECT mm_bill_period.id, mm_bill_period.fk_mm_bill, mm_bill_period.subid, mm_bill_period.begin_date, mm_bill_period.end_date, mm_bill_period.begin_rdg_val, mm_bill_period.end_rdg_val, mm_bill_period.energy_consum, mm_bill_period.consum_energy_price, mm_bill_period.service_price, mm_bill_period.advance_price, mm_bill_period.total_price
+FROM mm_bill
+JOIN mm
+	ON mm_bill.fk_mm = mm.id
+JOIN mm_bill_period
+	ON mm_bill.id = mm_bill_period.fk_mm_bill
+WHERE mm.id = $1 and mm_bill.subid = $2
+ORDER BY subid DESC
+`
+
+type ListMmBillPeriodsParams struct {
+	ID    int32
+	Subid int32
+}
+
+func (q *Queries) ListMmBillPeriods(ctx context.Context, arg ListMmBillPeriodsParams) ([]MmBillPeriod, error) {
+	rows, err := q.db.Query(ctx, listMmBillPeriods, arg.ID, arg.Subid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MmBillPeriod
+	for rows.Next() {
+		var i MmBillPeriod
+		if err := rows.Scan(
+			&i.ID,
+			&i.FkMmBill,
+			&i.Subid,
+			&i.BeginDate,
+			&i.EndDate,
+			&i.BeginRdgVal,
+			&i.EndRdgVal,
+			&i.EnergyConsum,
+			&i.ConsumEnergyPrice,
+			&i.ServicePrice,
+			&i.AdvancePrice,
+			&i.TotalPrice,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listMmBillSms = `-- name: ListMmBillSms :many

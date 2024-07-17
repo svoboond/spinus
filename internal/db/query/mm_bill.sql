@@ -9,8 +9,18 @@ SELECT mm_bill.*
 FROM mm_bill
 JOIN mm
 	ON mm_bill.fk_mm = mm.id
-WHERE fk_mm = $1 and subid = $2
+WHERE mm.id = $1 and subid = $2
 LIMIT 1;
+
+-- name: ListMmBillPeriods :many
+SELECT mm_bill_period.*
+FROM mm_bill
+JOIN mm
+	ON mm_bill.fk_mm = mm.id
+JOIN mm_bill_period
+	ON mm_bill.id = mm_bill_period.fk_mm_bill
+WHERE mm.id = $1 and mm_bill.subid = $2
+ORDER BY subid DESC;
 
 -- name: ListMmBillSms :many
 SELECT

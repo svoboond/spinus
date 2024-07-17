@@ -722,7 +722,7 @@ func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request)
 	}
 	mmID := mm.ID
 	bill, err := s.queries.GetMmBill(
-		ctx, spinusdb.GetMmBillParams{FkMm: mmID, Subid: subid})
+		ctx, spinusdb.GetMmBillParams{ID: mmID, Subid: subid})
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -732,6 +732,38 @@ func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request)
 		w, r, tmplName,
 		MmBillOverviewTmpl{
 			MmBill: bill,
+			Upper:  MmBillUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: mmID}, Subid: subid},
+		},
+	)
+}
+
+func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mmBillPeriodList"
+
+	ctx := r.Context()
+	mm, ok := GetMm(ctx)
+	if !ok {
+		slog.Error("error getting main meter", "mainMeter", mm)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		return
+	}
+	subid, err := GetSubidUrlParam(r)
+	if err != nil {
+		s.HandleNotFound(w, r)
+		return
+	}
+	mmID := mm.ID
+	billPeriod, err := s.queries.ListMmBillPeriods(
+		ctx, spinusdb.ListMmBillPeriodsParams{ID: mmID, Subid: subid})
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	s.renderTemplate(
+		w, r, tmplName,
+		MmBillPeriodListTmpl{
+			MmBillPeriods: billPeriod,
 			Upper:  MmBillUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: mmID}, Subid: subid},
 		},
 	)

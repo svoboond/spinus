@@ -160,6 +160,11 @@ func New(config *conf.Conf) (*Server, error) {
 					"billing/{subid:^[0-9]+$}/overview",
 				app.HandleGetMmBillOverview,
 			)
+			mmDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/"+
+					"billing/{subid:^[0-9]+$}/period/list",
+				app.HandleGetMmBillPeriodList,
+			)
 		})
 		loggedInRouter.Group(func(smDetailRouter chi.Router) {
 			smDetailRouter.Use(loggedInRouter.Middlewares()...)

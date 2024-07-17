@@ -60,3 +60,8 @@ type MmBillOverviewTmpl struct {
 	spinusdb.MmBill
 	Upper MmBillUpperTmpl
 }
+
+type MmBillPeriodListTmpl struct {
+	MmBillPeriods []spinusdb.MmBillPeriod
+	Upper         MmBillUpperTmpl
+}
