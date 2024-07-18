@@ -543,7 +543,7 @@ func (s *Server) HandleGetSmOverview(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmOverviewTmpl{
 			GetSmRow: sm,
-			Upper: SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+			Upper:    SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
 		},
 	)
 }
@@ -570,7 +570,7 @@ func (s *Server) HandleGetSmRdgList(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmRdgListTmpl{
 			SmRdgs: smRdgs,
-			Upper: SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+			Upper:  SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
 		},
 	)
 }
@@ -590,7 +590,7 @@ func (s *Server) HandleGetSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmRdgCreateTmpl{
 			SmRdgForm: SmRdgForm{},
-			Upper: SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+			Upper:     SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
 		},
 	)
 }
@@ -610,7 +610,7 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 	subid := sm.Subid
 	tmplData := SmRdgCreateTmpl{
 		SmRdgForm: SmRdgForm{},
-		Upper: SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+		Upper:     SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
 	}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
@@ -737,6 +737,39 @@ func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request)
 	)
 }
 
+func (s *Server) HandleGetMmBillSmList(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mmBillSmList"
+
+	ctx := r.Context()
+	mm, ok := GetMm(ctx)
+	if !ok {
+		slog.Error("error getting main meter", "mainMeter", mm)
+		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		return
+	}
+	subid, err := GetSubidUrlParam(r)
+	if err != nil {
+		s.HandleNotFound(w, r)
+		return
+	}
+	mmID := mm.ID
+	billSms, err := s.queries.ListMmBillSms(
+		ctx, spinusdb.ListMmBillSmsParams{ID: mmID, Subid: subid})
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	s.renderTemplate(
+		w, r, tmplName,
+		MmBillSmListTmpl{
+			MmBillSms: billSms,
+			Upper: MmBillUpperTmpl{
+				MmUpperTmpl: MmUpperTmpl{ID: mmID}, Subid: subid},
+		},
+	)
+}
+
 func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mmBillPeriodList"
 
@@ -764,7 +797,7 @@ func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Reques
 		w, r, tmplName,
 		MmBillPeriodListTmpl{
 			MmBillPeriods: billPeriod,
-			Upper:  MmBillUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: mmID}, Subid: subid},
+			Upper:         MmBillUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: mmID}, Subid: subid},
 		},
 	)
 }

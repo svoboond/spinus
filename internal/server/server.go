@@ -162,6 +162,11 @@ func New(config *conf.Conf) (*Server, error) {
 			)
 			mmDetailRouter.Get(
 				"/main-meter/{mmID:^[0-9]+$}/"+
+					"billing/{subid:^[0-9]+$}/sub-meter/list",
+				app.HandleGetMmBillSmList,
+			)
+			mmDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/"+
 					"billing/{subid:^[0-9]+$}/period/list",
 				app.HandleGetMmBillPeriodList,
 			)

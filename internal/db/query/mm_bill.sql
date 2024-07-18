@@ -24,21 +24,24 @@ ORDER BY subid DESC;
 
 -- name: ListMmBillSms :many
 SELECT
-	sm.id,
 	sm.subid,
 	sm.meter_id,
 	spinus_user.email,
-	energy_consum,
-	consum_energy_price,
-	service_price,
-	advance_price,
-	from_fin_balance,
-	to_pay,
-	status
-FROM sm_bill
+	sm_bill.energy_consum,
+	sm_bill.consum_energy_price,
+	sm_bill.service_price,
+	sm_bill.advance_price,
+	sm_bill.from_fin_balance,
+	sm_bill.to_pay,
+	sm_bill.status
+FROM mm_bill
+JOIN mm
+	ON mm_bill.fk_mm = mm.id
+JOIN sm_bill
+	ON mm_bill.id = sm_bill.fk_mm_bill
 JOIN sm
 	ON sm_bill.fk_sm = sm.id
 JOIN spinus_user
 	ON sm.fk_user = spinus_user.id
-WHERE fk_mm_bill = $1
+WHERE mm.id = $1 and mm_bill.subid = $2
 ORDER BY subid;
