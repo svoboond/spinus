@@ -41,6 +41,11 @@ type SmRdgCreateTmpl struct {
 	Upper SmUpperTmpl
 }
 
+type SmBillListTmpl struct {
+	SmBills []spinusdb.SmBill
+	Upper  SmUpperTmpl
+}
+
 type MmBillListTmpl struct {
 	MmBills []spinusdb.MmBill
 	Upper   MmUpperTmpl

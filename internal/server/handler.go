@@ -558,8 +558,7 @@ func (s *Server) HandleGetSmRdgList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
 		return
 	}
-	subid := sm.Subid
-	smRdgs, err := s.queries.ListSmRdgs(r.Context(), subid)
+	smRdgs, err := s.queries.ListSmRdgs(r.Context(), sm.ID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -590,7 +589,8 @@ func (s *Server) HandleGetSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmRdgCreateTmpl{
 			SmRdgForm: SmRdgForm{},
-			Upper:     SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+			Upper: SmUpperTmpl{
+				MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
 		},
 	)
 }
@@ -676,6 +676,33 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf(
 			"/main-meter/%d/sub-meter/%d/reading/list", mmID, subid),
 		http.StatusSeeOther,
+	)
+}
+
+func (s *Server) HandleGetSmBillList(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "smBillList"
+
+	ctx := r.Context()
+	sm, ok := GetSm(ctx)
+	if !ok {
+		slog.Error("error getting sub meter", "subMeter", sm)
+		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
+		return
+	}
+	smBills, err := s.queries.ListSmBills(r.Context(), sm.ID)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	s.renderTemplate(
+		w, r,
+		tmplName,
+		SmBillListTmpl{
+			SmBills: smBills,
+			Upper: SmUpperTmpl{
+				MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+		},
 	)
 }
 

@@ -194,6 +194,11 @@ func New(config *conf.Conf) (*Server, error) {
 					"sub-meter/{subid:^[0-9]+$}/reading/new",
 				app.HandlePostSmRdgCreate,
 			)
+			smDetailRouter.Get(
+				"/main-meter/{mmID:^[0-9]+$}/"+
+					"sub-meter/{subid:^[0-9]+$}/billing/list",
+				app.HandleGetSmBillList,
+			)
 		})
 	})
 
