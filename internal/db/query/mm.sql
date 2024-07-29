@@ -10,16 +10,18 @@ LIMIT 1;
 SELECT *
 FROM mm
 WHERE fk_user = $1
-ORDER BY id;
+ORDER BY created_ts;
 
 -- name: CreateMm :one
 INSERT INTO mm (
+	id,
 	meter_id,
 	energy,
 	address,
 	currency_code,
 	fk_user
 ) VALUES (
+	sqlc.arg(id),
 	TRIM(sqlc.arg(meter_id)),
 	sqlc.arg(energy),
 	TRIM(sqlc.arg(address)),

@@ -25,14 +25,19 @@ data:
   sqlc.yaml: |+
     version: "2"
     sql:
-      - engine: "postgresql"
-        queries: "./internal/db/query/"
-        schema: "./internal/db/migration/"
-        database:
-          uri: "${POSTGRES_URI}"
-        gen:
-          go:
-            package: "spinusdb"
-            out: "./internal/db/sqlc"
-            sql_package: "pgx/v5"
-            emit_enum_valid_method: true
+    - engine: "postgresql"
+      queries: "./internal/db/query/"
+      schema: "./internal/db/migration/"
+      database:
+        uri: "${POSTGRES_URI}"
+      gen:
+        go:
+          package: "spinusdb"
+          out: "./internal/db/sqlc"
+          sql_package: "pgx/v5"
+          emit_enum_valid_method: true
+          overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"

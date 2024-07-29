@@ -1,6 +1,10 @@
 package server
 
-import "github.com/jackc/pgx/v5/pgtype"
+import (
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+	"time"
+)
 
 type SignUpForm struct {
 	GeneralErr        string
@@ -22,23 +26,23 @@ type LogInForm struct {
 }
 
 type MmForm struct {
-	GeneralErr      string
-	MeterID         string
-	MeterIDErr      string
-	Energy          string
-	EnergyErr       string
-	Address         string
-	AddressErr      string
-	CurrencyCode    string
-	CurrencyCodeErr string
+	GeneralErr             string
+	MeterIdentification    string
+	MeterIdentificationErr string
+	Energy                 string
+	EnergyErr              string
+	Address                string
+	AddressErr             string
+	CurrencyCode           string
+	CurrencyCodeErr        string
 }
 
 type SmForm struct {
-	GeneralErr    string
-	MeterID       string
-	MeterIDErr    string
-	FinBalance    string
-	FinBalanceErr string
+	GeneralErr             string
+	MeterIdentification    string
+	MeterIdentificationErr string
+	FinBalance             string
+	FinBalanceErr          string
 }
 
 type SmRdgForm struct {
@@ -82,8 +86,8 @@ type MmBillPeriodForm struct {
 }
 
 type SmBillForm struct {
-	ID                int32
-	Subid             int32
+	ID                uuid.UUID
+	CreatedTs         time.Time
 	MeterID           pgtype.Text
 	Email             string
 	EnergyConsum      float64
@@ -96,6 +100,8 @@ type SmBillForm struct {
 
 type SmBillForms []*SmBillForm
 
-func (f SmBillForms) Less(i, j int) bool { return f[i].Subid < f[j].Subid }
-func (f SmBillForms) Swap(i, j int)      { f[i], f[j] = f[j], f[i] }
-func (f SmBillForms) Len() int           { return len(f) }
+func (f SmBillForms) Less(i, j int) bool {
+	return f[i].CreatedTs.Before(f[j].CreatedTs)
+}
+func (f SmBillForms) Swap(i, j int) { f[i], f[j] = f[j], f[i] }
+func (f SmBillForms) Len() int      { return len(f) }

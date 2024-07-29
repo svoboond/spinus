@@ -7,29 +7,39 @@ package spinusdb
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO spinus_user (
+	id,
 	username,
 	email,
 	password
 ) VALUES (
-	TRIM($1),
-	$2,
-	crypt($3, gen_salt('bf'))
+	$1,
+	TRIM($2),
+	$3,
+	crypt($4, gen_salt('bf'))
 )
 RETURNING id, username, email, password
 `
 
 type CreateUserParams struct {
+	ID            uuid.UUID
 	Username      string
 	Email         string
 	PasswordCrypt string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (SpinusUser, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Email, arg.PasswordCrypt)
+	row := q.db.QueryRow(ctx, createUser,
+		arg.ID,
+		arg.Username,
+		arg.Email,
+		arg.PasswordCrypt,
+	)
 	var i SpinusUser
 	err := row.Scan(
 		&i.ID,

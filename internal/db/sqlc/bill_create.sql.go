@@ -8,13 +8,14 @@ package spinusdb
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createMmBill = `-- name: CreateMmBill :one
 INSERT INTO mm_bill (
+	id,
 	fk_mm,
-	subid,
 	max_day_diff,
 	begin_date,
 	end_date,
@@ -25,14 +26,15 @@ INSERT INTO mm_bill (
 	from_fin_balance,
 	to_pay,
 	status
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-	FROM mm_bill
-	WHERE fk_mm = $1
-RETURNING id, fk_mm, subid, max_day_diff, begin_date, end_date, energy_consum, consum_energy_price, service_price, advance_price, from_fin_balance, to_pay, status
+) VALUES (
+	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+)
+RETURNING id, created_ts, fk_mm, max_day_diff, begin_date, end_date, energy_consum, consum_energy_price, service_price, advance_price, from_fin_balance, to_pay, status
 `
 
 type CreateMmBillParams struct {
-	FkMm              int32
+	ID                uuid.UUID
+	FkMm              uuid.UUID
 	MaxDayDiff        int32
 	BeginDate         pgtype.Date
 	EndDate           pgtype.Date
@@ -47,6 +49,7 @@ type CreateMmBillParams struct {
 
 func (q *Queries) CreateMmBill(ctx context.Context, arg CreateMmBillParams) (MmBill, error) {
 	row := q.db.QueryRow(ctx, createMmBill,
+		arg.ID,
 		arg.FkMm,
 		arg.MaxDayDiff,
 		arg.BeginDate,
@@ -62,8 +65,8 @@ func (q *Queries) CreateMmBill(ctx context.Context, arg CreateMmBillParams) (MmB
 	var i MmBill
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedTs,
 		&i.FkMm,
-		&i.Subid,
 		&i.MaxDayDiff,
 		&i.BeginDate,
 		&i.EndDate,
@@ -80,8 +83,8 @@ func (q *Queries) CreateMmBill(ctx context.Context, arg CreateMmBillParams) (MmB
 
 const createMmBillPeriod = `-- name: CreateMmBillPeriod :one
 INSERT INTO mm_bill_period (
+	id,
 	fk_mm_bill,
-	subid,
 	begin_date,
 	end_date,
 	begin_rdg_val,
@@ -91,14 +94,15 @@ INSERT INTO mm_bill_period (
 	service_price,
 	advance_price,
 	total_price
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-	FROM mm_bill_period
-	WHERE fk_mm_bill = $1
-RETURNING id, fk_mm_bill, subid, begin_date, end_date, begin_rdg_val, end_rdg_val, energy_consum, consum_energy_price, service_price, advance_price, total_price
+) VALUES (
+	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+)
+RETURNING id, created_ts, fk_mm_bill, begin_date, end_date, begin_rdg_val, end_rdg_val, energy_consum, consum_energy_price, service_price, advance_price, total_price
 `
 
 type CreateMmBillPeriodParams struct {
-	FkMmBill          int32
+	ID                uuid.UUID
+	FkMmBill          uuid.UUID
 	BeginDate         pgtype.Date
 	EndDate           pgtype.Date
 	BeginRdgVal       float64
@@ -112,6 +116,7 @@ type CreateMmBillPeriodParams struct {
 
 func (q *Queries) CreateMmBillPeriod(ctx context.Context, arg CreateMmBillPeriodParams) (MmBillPeriod, error) {
 	row := q.db.QueryRow(ctx, createMmBillPeriod,
+		arg.ID,
 		arg.FkMmBill,
 		arg.BeginDate,
 		arg.EndDate,
@@ -126,8 +131,8 @@ func (q *Queries) CreateMmBillPeriod(ctx context.Context, arg CreateMmBillPeriod
 	var i MmBillPeriod
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedTs,
 		&i.FkMmBill,
-		&i.Subid,
 		&i.BeginDate,
 		&i.EndDate,
 		&i.BeginRdgVal,
@@ -143,9 +148,9 @@ func (q *Queries) CreateMmBillPeriod(ctx context.Context, arg CreateMmBillPeriod
 
 const createSmBill = `-- name: CreateSmBill :one
 INSERT INTO sm_bill (
+	id,
 	fk_sm,
 	fk_mm_bill,
-	subid,
 	energy_consum,
 	consum_energy_price,
 	service_price,
@@ -153,15 +158,16 @@ INSERT INTO sm_bill (
 	from_fin_balance,
 	to_pay,
 	status
-) SELECT $1, $2, COALESCE(MAX(subid), 0) + 1, $3, $4, $5, $6, $7, $8, $9
-	FROM sm_bill
-	WHERE fk_sm = $1
-RETURNING id, fk_sm, fk_mm_bill, subid, energy_consum, consum_energy_price, service_price, advance_price, from_fin_balance, to_pay, status
+) VALUES (
+	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+)
+RETURNING id, created_ts, fk_sm, fk_mm_bill, energy_consum, consum_energy_price, service_price, advance_price, from_fin_balance, to_pay, status
 `
 
 type CreateSmBillParams struct {
-	FkSm              int32
-	FkMmBill          int32
+	ID                uuid.UUID
+	FkSm              uuid.UUID
+	FkMmBill          uuid.UUID
 	EnergyConsum      float64
 	ConsumEnergyPrice float64
 	ServicePrice      pgtype.Float8
@@ -173,6 +179,7 @@ type CreateSmBillParams struct {
 
 func (q *Queries) CreateSmBill(ctx context.Context, arg CreateSmBillParams) (SmBill, error) {
 	row := q.db.QueryRow(ctx, createSmBill,
+		arg.ID,
 		arg.FkSm,
 		arg.FkMmBill,
 		arg.EnergyConsum,
@@ -186,9 +193,9 @@ func (q *Queries) CreateSmBill(ctx context.Context, arg CreateSmBillParams) (SmB
 	var i SmBill
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedTs,
 		&i.FkSm,
 		&i.FkMmBill,
-		&i.Subid,
 		&i.EnergyConsum,
 		&i.ConsumEnergyPrice,
 		&i.ServicePrice,
@@ -202,6 +209,7 @@ func (q *Queries) CreateSmBill(ctx context.Context, arg CreateSmBillParams) (SmB
 
 const createSmBillPeriod = `-- name: CreateSmBillPeriod :one
 INSERT INTO sm_bill_period (
+	id,
 	fk_sm_bill,
 	fk_mm_bill_period,
 	energy_consum,
@@ -210,14 +218,15 @@ INSERT INTO sm_bill_period (
 	advance_price,
 	total_price
 ) VALUES (
-	$1, $2, $3, $4, $5, $6, $7
+	$1, $2, $3, $4, $5, $6, $7, $8
 )
-RETURNING id, fk_sm_bill, fk_mm_bill_period, energy_consum, consum_energy_price, service_price, advance_price, total_price
+RETURNING id, created_ts, fk_sm_bill, fk_mm_bill_period, energy_consum, consum_energy_price, service_price, advance_price, total_price
 `
 
 type CreateSmBillPeriodParams struct {
-	FkSmBill          int32
-	FkMmBillPeriod    int32
+	ID                uuid.UUID
+	FkSmBill          uuid.UUID
+	FkMmBillPeriod    uuid.UUID
 	EnergyConsum      float64
 	ConsumEnergyPrice float64
 	ServicePrice      pgtype.Float8
@@ -227,6 +236,7 @@ type CreateSmBillPeriodParams struct {
 
 func (q *Queries) CreateSmBillPeriod(ctx context.Context, arg CreateSmBillPeriodParams) (SmBillPeriod, error) {
 	row := q.db.QueryRow(ctx, createSmBillPeriod,
+		arg.ID,
 		arg.FkSmBill,
 		arg.FkMmBillPeriod,
 		arg.EnergyConsum,
@@ -238,6 +248,7 @@ func (q *Queries) CreateSmBillPeriod(ctx context.Context, arg CreateSmBillPeriod
 	var i SmBillPeriod
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedTs,
 		&i.FkSmBill,
 		&i.FkMmBillPeriod,
 		&i.EnergyConsum,
@@ -290,13 +301,13 @@ ORDER BY rdg_date DESC NULLS LAST
 `
 
 type GetSmRdgsParams struct {
-	FkMm    int32
+	FkMm    uuid.UUID
 	DateMax pgtype.Date
 	DateMin pgtype.Date
 }
 
 type GetSmRdgsRow struct {
-	SmID    int32
+	SmID    uuid.UUID
 	RdgVal  pgtype.Float8
 	RdgDate pgtype.Date
 }

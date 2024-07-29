@@ -6,10 +6,10 @@ ORDER BY rdg_date DESC;
 
 -- name: CreateSmRdg :one
 INSERT INTO sm_rdg (
-	fk_sm, subid, rdg_val, rdg_date
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3
-	FROM sm_rdg
-	WHERE fk_sm = $1
+	id, fk_sm, rdg_val, rdg_date
+) VALUES (
+	$1, $2, $3, $4
+)
 RETURNING *;
 
 -- name: GetSmRdgForDate :one

@@ -8,30 +8,43 @@ package spinusdb
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getMmBill = `-- name: GetMmBill :one
-SELECT mm_bill.id, mm_bill.fk_mm, mm_bill.subid, mm_bill.max_day_diff, mm_bill.begin_date, mm_bill.end_date, mm_bill.energy_consum, mm_bill.consum_energy_price, mm_bill.service_price, mm_bill.advance_price, mm_bill.from_fin_balance, mm_bill.to_pay, mm_bill.status
+SELECT mm_bill.id, mm_bill.created_ts, mm_bill.fk_mm, mm_bill.max_day_diff, mm_bill.begin_date, mm_bill.end_date, mm_bill.energy_consum, mm_bill.consum_energy_price, mm_bill.service_price, mm_bill.advance_price, mm_bill.from_fin_balance, mm_bill.to_pay, mm_bill.status, mm.fk_user
 FROM mm_bill
 JOIN mm
 	ON mm_bill.fk_mm = mm.id
-WHERE mm.id = $1 and subid = $2
+WHERE mm_bill.id = $1
 LIMIT 1
 `
 
-type GetMmBillParams struct {
-	ID    int32
-	Subid int32
+type GetMmBillRow struct {
+	ID                uuid.UUID
+	CreatedTs         pgtype.Timestamp
+	FkMm              uuid.UUID
+	MaxDayDiff        int32
+	BeginDate         pgtype.Date
+	EndDate           pgtype.Date
+	EnergyConsum      float64
+	ConsumEnergyPrice float64
+	ServicePrice      pgtype.Float8
+	AdvancePrice      float64
+	FromFinBalance    float64
+	ToPay             float64
+	Status            MmBillStatus
+	FkUser            uuid.UUID
 }
 
-func (q *Queries) GetMmBill(ctx context.Context, arg GetMmBillParams) (MmBill, error) {
-	row := q.db.QueryRow(ctx, getMmBill, arg.ID, arg.Subid)
-	var i MmBill
+func (q *Queries) GetMmBill(ctx context.Context, id uuid.UUID) (GetMmBillRow, error) {
+	row := q.db.QueryRow(ctx, getMmBill, id)
+	var i GetMmBillRow
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedTs,
 		&i.FkMm,
-		&i.Subid,
 		&i.MaxDayDiff,
 		&i.BeginDate,
 		&i.EndDate,
@@ -42,28 +55,29 @@ func (q *Queries) GetMmBill(ctx context.Context, arg GetMmBillParams) (MmBill, e
 		&i.FromFinBalance,
 		&i.ToPay,
 		&i.Status,
+		&i.FkUser,
 	)
 	return i, err
 }
 
 const listMmBillPeriods = `-- name: ListMmBillPeriods :many
-SELECT mm_bill_period.id, mm_bill_period.fk_mm_bill, mm_bill_period.subid, mm_bill_period.begin_date, mm_bill_period.end_date, mm_bill_period.begin_rdg_val, mm_bill_period.end_rdg_val, mm_bill_period.energy_consum, mm_bill_period.consum_energy_price, mm_bill_period.service_price, mm_bill_period.advance_price, mm_bill_period.total_price
+SELECT mm_bill_period.id, mm_bill_period.created_ts, mm_bill_period.fk_mm_bill, mm_bill_period.begin_date, mm_bill_period.end_date, mm_bill_period.begin_rdg_val, mm_bill_period.end_rdg_val, mm_bill_period.energy_consum, mm_bill_period.consum_energy_price, mm_bill_period.service_price, mm_bill_period.advance_price, mm_bill_period.total_price
 FROM mm_bill
 JOIN mm
 	ON mm_bill.fk_mm = mm.id
 JOIN mm_bill_period
 	ON mm_bill.id = mm_bill_period.fk_mm_bill
-WHERE mm.id = $1 and mm_bill.subid = $2
-ORDER BY subid DESC
+WHERE mm_bill.id = $1 AND mm.id = $2
+ORDER BY mm_bill_period.begin_date
 `
 
 type ListMmBillPeriodsParams struct {
-	ID    int32
-	Subid int32
+	ID   uuid.UUID
+	ID_2 uuid.UUID
 }
 
 func (q *Queries) ListMmBillPeriods(ctx context.Context, arg ListMmBillPeriodsParams) ([]MmBillPeriod, error) {
-	rows, err := q.db.Query(ctx, listMmBillPeriods, arg.ID, arg.Subid)
+	rows, err := q.db.Query(ctx, listMmBillPeriods, arg.ID, arg.ID_2)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +87,8 @@ func (q *Queries) ListMmBillPeriods(ctx context.Context, arg ListMmBillPeriodsPa
 		var i MmBillPeriod
 		if err := rows.Scan(
 			&i.ID,
+			&i.CreatedTs,
 			&i.FkMmBill,
-			&i.Subid,
 			&i.BeginDate,
 			&i.EndDate,
 			&i.BeginRdgVal,
@@ -97,7 +111,6 @@ func (q *Queries) ListMmBillPeriods(ctx context.Context, arg ListMmBillPeriodsPa
 
 const listMmBillSms = `-- name: ListMmBillSms :many
 SELECT
-	sm.subid,
 	sm.meter_id,
 	spinus_user.email,
 	sm_bill.energy_consum,
@@ -116,17 +129,16 @@ JOIN sm
 	ON sm_bill.fk_sm = sm.id
 JOIN spinus_user
 	ON sm.fk_user = spinus_user.id
-WHERE mm.id = $1 and mm_bill.subid = $2
-ORDER BY subid
+WHERE mm_bill.id = $1 AND mm.id = $2
+ORDER BY sm.created_ts
 `
 
 type ListMmBillSmsParams struct {
-	ID    int32
-	Subid int32
+	ID   uuid.UUID
+	ID_2 uuid.UUID
 }
 
 type ListMmBillSmsRow struct {
-	Subid             int32
 	MeterID           pgtype.Text
 	Email             string
 	EnergyConsum      float64
@@ -139,7 +151,7 @@ type ListMmBillSmsRow struct {
 }
 
 func (q *Queries) ListMmBillSms(ctx context.Context, arg ListMmBillSmsParams) ([]ListMmBillSmsRow, error) {
-	rows, err := q.db.Query(ctx, listMmBillSms, arg.ID, arg.Subid)
+	rows, err := q.db.Query(ctx, listMmBillSms, arg.ID, arg.ID_2)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +160,6 @@ func (q *Queries) ListMmBillSms(ctx context.Context, arg ListMmBillSmsParams) ([
 	for rows.Next() {
 		var i ListMmBillSmsRow
 		if err := rows.Scan(
-			&i.Subid,
 			&i.MeterID,
 			&i.Email,
 			&i.EnergyConsum,
@@ -170,13 +181,13 @@ func (q *Queries) ListMmBillSms(ctx context.Context, arg ListMmBillSmsParams) ([
 }
 
 const listMmBills = `-- name: ListMmBills :many
-SELECT id, fk_mm, subid, max_day_diff, begin_date, end_date, energy_consum, consum_energy_price, service_price, advance_price, from_fin_balance, to_pay, status
+SELECT id, created_ts, fk_mm, max_day_diff, begin_date, end_date, energy_consum, consum_energy_price, service_price, advance_price, from_fin_balance, to_pay, status
 FROM mm_bill
 WHERE fk_mm = $1
-ORDER BY subid DESC
+ORDER BY created_ts DESC
 `
 
-func (q *Queries) ListMmBills(ctx context.Context, fkMm int32) ([]MmBill, error) {
+func (q *Queries) ListMmBills(ctx context.Context, fkMm uuid.UUID) ([]MmBill, error) {
 	rows, err := q.db.Query(ctx, listMmBills, fkMm)
 	if err != nil {
 		return nil, err
@@ -187,8 +198,8 @@ func (q *Queries) ListMmBills(ctx context.Context, fkMm int32) ([]MmBill, error)
 		var i MmBill
 		if err := rows.Scan(
 			&i.ID,
+			&i.CreatedTs,
 			&i.FkMm,
-			&i.Subid,
 			&i.MaxDayDiff,
 			&i.BeginDate,
 			&i.EndDate,

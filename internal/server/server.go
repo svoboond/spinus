@@ -6,13 +6,13 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/alexedwards/scs/goredisstore"
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -35,6 +35,7 @@ type Server struct {
 
 func New(config *conf.Conf) (*Server, error) {
 	slog.Debug("parsing templates...")
+	var err error
 	templates, err := tmpl.NewTemplateRenderer(
 		ui.EmbeddedContentHTML, "html/*.html", "html/**/*.html")
 	if err != nil {
@@ -54,7 +55,7 @@ func New(config *conf.Conf) (*Server, error) {
 		return nil, fmt.Errorf("could not connect to postgres: %w", err)
 	}
 
-	if err := migrateDatabase(postgresClient); err != nil {
+	if err = migrateDatabase(postgresClient); err != nil {
 		return nil, fmt.Errorf("could not migrate database: %w", err)
 	}
 
@@ -128,75 +129,71 @@ func New(config *conf.Conf) (*Server, error) {
 			mmDetailRouter.Use(loggedInRouter.Middlewares()...)
 			mmDetailRouter.Use(app.WithMm)
 			mmDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/overview",
+				"/main-meter/{uuid}/overview",
 				app.HandleGetMmOverview,
 			)
 			mmDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/sub-meter/list",
+				"/main-meter/{uuid}/sub-meter/list",
 				app.HandleGetSmList,
 			)
 			mmDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/sub-meter/new",
+				"/main-meter/{uuid}/sub-meter/new",
 				app.HandleGetSmCreate,
 			)
 			mmDetailRouter.Post(
-				"/main-meter/{mmID:^[0-9]+$}/sub-meter/new",
+				"/main-meter/{uuid}/sub-meter/new",
 				app.HandlePostSmCreate,
 			)
 			mmDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/billing/list",
+				"/main-meter/{uuid}/billing/list",
 				app.HandleGetMmBillList,
 			)
 			mmDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/billing/new",
+				"/main-meter/{uuid}/billing/new",
 				app.HandleGetMmBillCreate,
 			)
 			mmDetailRouter.Post(
-				"/main-meter/{mmID:^[0-9]+$}/billing/new",
+				"/main-meter/{uuid}/billing/new",
 				app.HandlePostMmBillCreate,
 			)
-			mmDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/"+
-					"billing/{subid:^[0-9]+$}/overview",
+		})
+		loggedInRouter.Group(func(mmBillDetailRouter chi.Router) {
+			mmBillDetailRouter.Use(loggedInRouter.Middlewares()...)
+			mmBillDetailRouter.Use(app.WithMmBill)
+			mmBillDetailRouter.Get(
+				"/main-meter-billing/{uuid}/overview",
 				app.HandleGetMmBillOverview,
 			)
-			mmDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/"+
-					"billing/{subid:^[0-9]+$}/sub-meter/list",
-				app.HandleGetMmBillSmList,
-			)
-			mmDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/"+
-					"billing/{subid:^[0-9]+$}/period/list",
-				app.HandleGetMmBillPeriodList,
-			)
+			// mmBillDetailRouter.Get(
+			// 	"/main-meter/{mmID:^[0-9]+$}/billing/{billID:^[0-9]+$}/sub-meter/list",
+			// 	app.HandleGetMmBillSmList,
+			// )
+			// mmBillDetailRouter.Get(
+			// 	"/main-meter/{mmID:^[0-9]+$}/billing/{billID:^[0-9]+$}/period/list",
+			// 	app.HandleGetMmBillPeriodList,
+			// )
 		})
 		loggedInRouter.Group(func(smDetailRouter chi.Router) {
 			smDetailRouter.Use(loggedInRouter.Middlewares()...)
 			smDetailRouter.Use(app.WithSm)
 			smDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/"+
-					"sub-meter/{subid:^[0-9]+$}/overview",
+				"/sub-meter/{uuid}/overview",
 				app.HandleGetSmOverview,
 			)
 			smDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/"+
-					"sub-meter/{subid:^[0-9]+$}/reading/list",
+				"/sub-meter/{uuid}/reading/list",
 				app.HandleGetSmRdgList,
 			)
 			smDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/"+
-					"sub-meter/{subid:^[0-9]+$}/reading/new",
+				"/sub-meter/{uuid}/reading/new",
 				app.HandleGetSmRdgCreate,
 			)
 			smDetailRouter.Post(
-				"/main-meter/{mmID:^[0-9]+$}/"+
-					"sub-meter/{subid:^[0-9]+$}/reading/new",
+				"/sub-meter/{uuid}/reading/new",
 				app.HandlePostSmRdgCreate,
 			)
 			smDetailRouter.Get(
-				"/main-meter/{mmID:^[0-9]+$}/"+
-					"sub-meter/{subid:^[0-9]+$}/billing/list",
+				"/sub-meter/{uuid}/billing/list",
 				app.HandleGetSmBillList,
 			)
 		})
@@ -205,21 +202,13 @@ func New(config *conf.Conf) (*Server, error) {
 	return app, nil
 }
 
-func GetMmIDUrlParam(r *http.Request) (int32, error) {
-	var v int32
-	id, err := strconv.ParseInt(chi.URLParam(r, "mmID"), 10, 32)
+func GetUUIDUrlParam(r *http.Request) (uuid.UUID, error) {
+	var v uuid.UUID
+	id, err := uuid.Parse(chi.URLParam(r, "uuid"))
 	if err != nil {
 		return v, err
 	}
-	return int32(id), err
-}
-func GetSubidUrlParam(r *http.Request) (int32, error) {
-	var v int32
-	id, err := strconv.ParseInt(chi.URLParam(r, "subid"), 10, 32)
-	if err != nil {
-		return v, err
-	}
-	return int32(id), err
+	return id, err
 }
 
 func (s *Server) ListenAndServe() error { return s.server.ListenAndServe() }

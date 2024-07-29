@@ -8,8 +8,8 @@
 
 		<label for="meter-identification">Meter Identification (Required)</label>
 		<input type="text" name="meter-identification" id="meter-identification" minlength="3" maxlength="64" required
-			{{ with .MeterID }} value="{{ . }}" {{ end }}>
-		{{ with .MeterIDErr }}
+			{{ with .MeterIdentification }} value="{{ . }}" {{ end }}>
+		{{ with .MeterIdentificationErr }}
 		<label class="error" for="meter-identification">{{ . }}</label>
 		{{ end }}
 

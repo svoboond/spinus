@@ -8,31 +8,38 @@ package spinusdb
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createSmRdg = `-- name: CreateSmRdg :one
 INSERT INTO sm_rdg (
-	fk_sm, subid, rdg_val, rdg_date
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3
-	FROM sm_rdg
-	WHERE fk_sm = $1
-RETURNING id, fk_sm, subid, rdg_val, rdg_date
+	id, fk_sm, rdg_val, rdg_date
+) VALUES (
+	$1, $2, $3, $4
+)
+RETURNING id, created_ts, fk_sm, rdg_val, rdg_date
 `
 
 type CreateSmRdgParams struct {
-	FkSm    int32
+	ID      uuid.UUID
+	FkSm    uuid.UUID
 	RdgVal  float64
 	RdgDate pgtype.Date
 }
 
 func (q *Queries) CreateSmRdg(ctx context.Context, arg CreateSmRdgParams) (SmRdg, error) {
-	row := q.db.QueryRow(ctx, createSmRdg, arg.FkSm, arg.RdgVal, arg.RdgDate)
+	row := q.db.QueryRow(ctx, createSmRdg,
+		arg.ID,
+		arg.FkSm,
+		arg.RdgVal,
+		arg.RdgDate,
+	)
 	var i SmRdg
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedTs,
 		&i.FkSm,
-		&i.Subid,
 		&i.RdgVal,
 		&i.RdgDate,
 	)
@@ -47,7 +54,7 @@ LIMIT 1
 `
 
 type GetSmRdgForDateParams struct {
-	FkSm    int32
+	FkSm    uuid.UUID
 	RdgDate pgtype.Date
 }
 
@@ -59,13 +66,13 @@ func (q *Queries) GetSmRdgForDate(ctx context.Context, arg GetSmRdgForDateParams
 }
 
 const listSmRdgs = `-- name: ListSmRdgs :many
-SELECT id, fk_sm, subid, rdg_val, rdg_date
+SELECT id, created_ts, fk_sm, rdg_val, rdg_date
 FROM sm_rdg
 WHERE fk_sm = $1
 ORDER BY rdg_date DESC
 `
 
-func (q *Queries) ListSmRdgs(ctx context.Context, fkSm int32) ([]SmRdg, error) {
+func (q *Queries) ListSmRdgs(ctx context.Context, fkSm uuid.UUID) ([]SmRdg, error) {
 	rows, err := q.db.Query(ctx, listSmRdgs, fkSm)
 	if err != nil {
 		return nil, err
@@ -76,8 +83,8 @@ func (q *Queries) ListSmRdgs(ctx context.Context, fkSm int32) ([]SmRdg, error) {
 		var i SmRdg
 		if err := rows.Scan(
 			&i.ID,
+			&i.CreatedTs,
 			&i.FkSm,
-			&i.Subid,
 			&i.RdgVal,
 			&i.RdgDate,
 		); err != nil {

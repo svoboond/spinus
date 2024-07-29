@@ -39,8 +39,8 @@ ORDER BY rdg_date DESC NULLS LAST;
 
 -- name: CreateMmBill :one
 INSERT INTO mm_bill (
+	id,
 	fk_mm,
-	subid,
 	max_day_diff,
 	begin_date,
 	end_date,
@@ -51,15 +51,15 @@ INSERT INTO mm_bill (
 	from_fin_balance,
 	to_pay,
 	status
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-	FROM mm_bill
-	WHERE fk_mm = $1
+) VALUES (
+	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+)
 RETURNING *;
 
 -- name: CreateMmBillPeriod :one
 INSERT INTO mm_bill_period (
+	id,
 	fk_mm_bill,
-	subid,
 	begin_date,
 	end_date,
 	begin_rdg_val,
@@ -69,16 +69,16 @@ INSERT INTO mm_bill_period (
 	service_price,
 	advance_price,
 	total_price
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-	FROM mm_bill_period
-	WHERE fk_mm_bill = $1
+) VALUES (
+	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+)
 RETURNING *;
 
 -- name: CreateSmBill :one
 INSERT INTO sm_bill (
+	id,
 	fk_sm,
 	fk_mm_bill,
-	subid,
 	energy_consum,
 	consum_energy_price,
 	service_price,
@@ -86,13 +86,14 @@ INSERT INTO sm_bill (
 	from_fin_balance,
 	to_pay,
 	status
-) SELECT $1, $2, COALESCE(MAX(subid), 0) + 1, $3, $4, $5, $6, $7, $8, $9
-	FROM sm_bill
-	WHERE fk_sm = $1
+) VALUES (
+	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+)
 RETURNING *;
 
 -- name: CreateSmBillPeriod :one
 INSERT INTO sm_bill_period (
+	id,
 	fk_sm_bill,
 	fk_mm_bill_period,
 	energy_consum,
@@ -101,6 +102,6 @@ INSERT INTO sm_bill_period (
 	advance_price,
 	total_price
 ) VALUES (
-	$1, $2, $3, $4, $5, $6, $7
+	$1, $2, $3, $4, $5, $6, $7, $8
 )
 RETURNING *;

@@ -8,6 +8,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -167,18 +168,19 @@ func (e SmBillStatus) Valid() bool {
 }
 
 type Mm struct {
-	ID           int32
+	ID           uuid.UUID
+	CreatedTs    pgtype.Timestamp
 	MeterID      string
 	Energy       Energy
 	Address      string
 	CurrencyCode string
-	FkUser       int32
+	FkUser       uuid.UUID
 }
 
 type MmBill struct {
-	ID                int32
-	FkMm              int32
-	Subid             int32
+	ID                uuid.UUID
+	CreatedTs         pgtype.Timestamp
+	FkMm              uuid.UUID
 	MaxDayDiff        int32
 	BeginDate         pgtype.Date
 	EndDate           pgtype.Date
@@ -192,9 +194,9 @@ type MmBill struct {
 }
 
 type MmBillPeriod struct {
-	ID                int32
-	FkMmBill          int32
-	Subid             int32
+	ID                uuid.UUID
+	CreatedTs         pgtype.Timestamp
+	FkMmBill          uuid.UUID
 	BeginDate         pgtype.Date
 	EndDate           pgtype.Date
 	BeginRdgVal       float64
@@ -207,19 +209,19 @@ type MmBillPeriod struct {
 }
 
 type Sm struct {
-	ID         int32
-	FkMm       int32
-	Subid      int32
+	ID         uuid.UUID
+	CreatedTs  pgtype.Timestamp
+	FkMm       uuid.UUID
 	MeterID    pgtype.Text
 	FinBalance float64
-	FkUser     int32
+	FkUser     uuid.UUID
 }
 
 type SmBill struct {
-	ID                int32
-	FkSm              int32
-	FkMmBill          int32
-	Subid             int32
+	ID                uuid.UUID
+	CreatedTs         pgtype.Timestamp
+	FkSm              uuid.UUID
+	FkMmBill          uuid.UUID
 	EnergyConsum      float64
 	ConsumEnergyPrice float64
 	ServicePrice      pgtype.Float8
@@ -230,9 +232,10 @@ type SmBill struct {
 }
 
 type SmBillPeriod struct {
-	ID                int32
-	FkSmBill          int32
-	FkMmBillPeriod    int32
+	ID                uuid.UUID
+	CreatedTs         pgtype.Timestamp
+	FkSmBill          uuid.UUID
+	FkMmBillPeriod    uuid.UUID
 	EnergyConsum      float64
 	ConsumEnergyPrice float64
 	ServicePrice      pgtype.Float8
@@ -241,15 +244,15 @@ type SmBillPeriod struct {
 }
 
 type SmRdg struct {
-	ID      int32
-	FkSm    int32
-	Subid   int32
-	RdgVal  float64
-	RdgDate pgtype.Date
+	ID        uuid.UUID
+	CreatedTs pgtype.Timestamp
+	FkSm      uuid.UUID
+	RdgVal    float64
+	RdgDate   pgtype.Date
 }
 
 type SpinusUser struct {
-	ID       int32
+	ID       uuid.UUID
 	Username string
 	Email    string
 	Password string

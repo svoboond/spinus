@@ -1,9 +1,12 @@
 package server
 
-import spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+import (
+	"github.com/google/uuid"
+	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+)
 
 type MmUpperTmpl struct {
-	ID int32
+	MmID uuid.UUID
 }
 
 type MmOverviewTmpl struct {
@@ -23,7 +26,7 @@ type SmCreateTmpl struct {
 
 type SmUpperTmpl struct {
 	MmUpperTmpl
-	Subid int32
+	SmID uuid.UUID
 }
 
 type SmOverviewTmpl struct {
@@ -43,7 +46,7 @@ type SmRdgCreateTmpl struct {
 
 type SmBillListTmpl struct {
 	SmBills []spinusdb.SmBill
-	Upper  SmUpperTmpl
+	Upper   SmUpperTmpl
 }
 
 type MmBillListTmpl struct {
@@ -58,11 +61,11 @@ type MmBillCreateTmpl struct {
 
 type MmBillUpperTmpl struct {
 	MmUpperTmpl
-	Subid int32
+	MmBillID uuid.UUID
 }
 
 type MmBillOverviewTmpl struct {
-	spinusdb.MmBill
+	spinusdb.GetMmBillRow
 	Upper MmBillUpperTmpl
 }
 

@@ -12,6 +12,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
@@ -164,9 +165,16 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, err := uuid.NewV7()
+	if err != nil {
+		slog.Error("error getting UUIDv7", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
 	user, err := s.queries.CreateUser(
 		ctx,
 		spinusdb.CreateUserParams{
+			ID:            userID,
 			Username:      string(username),
 			Email:         string(email),
 			PasswordCrypt: string(password),
@@ -266,7 +274,7 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.sessionManager.Put(ctx, "userID", user.ID)
+	s.sessionManager.Put(ctx, "userID", user.ID.String())
 
 	query := r.URL.Query()
 	next := query.Get("next")
@@ -283,7 +291,7 @@ func (s *Server) HandleGetMmList(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mmList"
 
 	ctx := r.Context()
-	userID, ok := UserID(ctx)
+	userID, ok := GetUserID(ctx)
 	if !ok {
 		slog.Error("error getting user ID", "userID", userID)
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
@@ -320,10 +328,10 @@ func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	iMeterID := r.PostFormValue("meter-identification")
-	form.MeterID = iMeterID
-	meterID, err := parseMmID(iMeterID)
+	form.MeterIdentification = iMeterID
+	meterID, err := parseMmIdentification(iMeterID)
 	if err != nil {
-		form.MeterIDErr = err.Error()
+		form.MeterIdentificationErr = err.Error()
 		formError = true
 	}
 
@@ -357,15 +365,22 @@ func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	userID, ok := UserID(ctx)
+	userID, ok := GetUserID(ctx)
 	if !ok {
 		slog.Error("error getting user ID", "userID", userID)
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
 		return
 	}
-	mm, err := s.queries.CreateMm(
+	mmID, err := uuid.NewV7()
+	if err != nil {
+		slog.Error("error getting UUIDv7", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	_, err = s.queries.CreateMm(
 		ctx,
 		spinusdb.CreateMmParams{
+			ID:           mmID,
 			MeterID:      string(meterID),
 			Energy:       energy,
 			Address:      string(address),
@@ -380,7 +395,11 @@ func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(
-		w, r, fmt.Sprintf("/main-meter/%d/overview", mm.ID), http.StatusSeeOther)
+		w,
+		r,
+		fmt.Sprintf("/main-meter/%s/overview", mmID.String()),
+		http.StatusSeeOther,
+	)
 }
 
 func (s *Server) HandleGetMmOverview(w http.ResponseWriter, r *http.Request) {
@@ -394,12 +413,7 @@ func (s *Server) HandleGetMmOverview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.renderTemplate(
-		w, r,
-		tmplName,
-		MmOverviewTmpl{
-			GetMmRow: mm,
-			Upper:    MmUpperTmpl{ID: mm.ID},
-		},
+		w, r, tmplName, MmOverviewTmpl{GetMmRow: mm, Upper: MmUpperTmpl{MmID: mm.ID}},
 	)
 }
 
@@ -414,12 +428,7 @@ func (s *Server) HandleGetSmCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.renderTemplate(
-		w, r,
-		tmplName,
-		SmCreateTmpl{
-			SmForm: SmForm{},
-			Upper:  MmUpperTmpl{ID: mm.ID},
-		},
+		w, r, tmplName, SmCreateTmpl{SmForm: SmForm{}, Upper: MmUpperTmpl{MmID: mm.ID}},
 	)
 }
 
@@ -427,7 +436,7 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "smCreate"
 
 	ctx := r.Context()
-	userID, ok := UserID(ctx)
+	userID, ok := GetUserID(ctx)
 	if !ok {
 		slog.Error("error getting user ID", "userID", userID)
 		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
@@ -440,10 +449,7 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmplData := SmCreateTmpl{
-		SmForm: SmForm{},
-		Upper:  MmUpperTmpl{ID: mm.ID},
-	}
+	tmplData := SmCreateTmpl{SmForm: SmForm{}, Upper: MmUpperTmpl{MmID: mm.ID}}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
@@ -456,11 +462,11 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	iMeterID := r.PostFormValue("meter-identification")
-	tmplData.MeterID = iMeterID
-	smID, err := parseSmID(iMeterID)
+	iMeterIdentification := r.PostFormValue("meter-identification")
+	tmplData.MeterIdentification = iMeterIdentification
+	meterIdentification, err := parseSmIdentification(iMeterIdentification)
 	if err != nil {
-		tmplData.MeterIDErr = err.Error()
+		tmplData.MeterIdentificationErr = err.Error()
 		formError = true
 	}
 
@@ -477,11 +483,18 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	smID, err := uuid.NewV7()
+	if err != nil {
+		slog.Error("error getting UUIDv7", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
 	_, err = s.queries.CreateSm(
 		ctx,
 		spinusdb.CreateSmParams{
+			ID:         smID,
 			FkMm:       mm.ID,
-			MeterID:    pgtype.Text{String: string(smID), Valid: true},
+			MeterID:    pgtype.Text{String: string(meterIdentification), Valid: true},
 			FinBalance: float64(finBalance),
 			FkUser:     userID,
 		},
@@ -493,8 +506,7 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(
-		w, r,
-		fmt.Sprintf("/main-meter/%d/sub-meter/list", mm.ID), http.StatusSeeOther,
+		w, r, fmt.Sprintf("/main-meter/%d/sub-meter/list", mm.ID), http.StatusSeeOther,
 	)
 }
 
@@ -522,7 +534,7 @@ func (s *Server) HandleGetSmList(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmListTmpl{
 			Sms:   sms,
-			Upper: MmUpperTmpl{ID: mmID},
+			Upper: MmUpperTmpl{MmID: mmID},
 		},
 	)
 }
@@ -543,7 +555,10 @@ func (s *Server) HandleGetSmOverview(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmOverviewTmpl{
 			GetSmRow: sm,
-			Upper:    SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+			Upper: SmUpperTmpl{
+				MmUpperTmpl: MmUpperTmpl{MmID: sm.MmID},
+				SmID:        sm.ID,
+			},
 		},
 	)
 }
@@ -558,7 +573,8 @@ func (s *Server) HandleGetSmRdgList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
 		return
 	}
-	smRdgs, err := s.queries.ListSmRdgs(r.Context(), sm.ID)
+	smID := sm.ID
+	smRdgs, err := s.queries.ListSmRdgs(r.Context(), smID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -569,7 +585,10 @@ func (s *Server) HandleGetSmRdgList(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		SmRdgListTmpl{
 			SmRdgs: smRdgs,
-			Upper:  SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+			Upper: SmUpperTmpl{
+				MmUpperTmpl: MmUpperTmpl{MmID: sm.MmID},
+				SmID:        smID,
+			},
 		},
 	)
 }
@@ -590,7 +609,9 @@ func (s *Server) HandleGetSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 		SmRdgCreateTmpl{
 			SmRdgForm: SmRdgForm{},
 			Upper: SmUpperTmpl{
-				MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+				MmUpperTmpl: MmUpperTmpl{MmID: sm.MmID},
+				SmID:        sm.ID,
+			},
 		},
 	)
 }
@@ -606,11 +627,13 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mmID := sm.MmID
-	subid := sm.Subid
+	smID := sm.ID
 	tmplData := SmRdgCreateTmpl{
 		SmRdgForm: SmRdgForm{},
-		Upper:     SmUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+		Upper: SmUpperTmpl{
+			MmUpperTmpl: MmUpperTmpl{MmID: sm.MmID},
+			SmID:        smID,
+		},
 	}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
@@ -632,7 +655,6 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 		formError = true
 	}
 
-	smID := sm.ID
 	iRdgDate := r.PostFormValue("rdg-date")
 	tmplData.RdgDate = iRdgDate
 	rdgTime, err := parseDate(iRdgDate)
@@ -657,10 +679,17 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rdgID, err := uuid.NewV7()
+	if err != nil {
+		slog.Error("error getting UUIDv7", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
 	_, err = s.queries.CreateSmRdg(
 		ctx,
 		spinusdb.CreateSmRdgParams{
-			FkSm:    sm.ID,
+			ID:      rdgID,
+			FkSm:    smID,
 			RdgVal:  float64(rdgVal),
 			RdgDate: rdgDate,
 		},
@@ -672,10 +701,7 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(
-		w, r,
-		fmt.Sprintf(
-			"/main-meter/%d/sub-meter/%d/reading/list", mmID, subid),
-		http.StatusSeeOther,
+		w, r, fmt.Sprintf("/sub-meter/%d/reading/list", smID), http.StatusSeeOther,
 	)
 }
 
@@ -689,7 +715,8 @@ func (s *Server) HandleGetSmBillList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
 		return
 	}
-	smBills, err := s.queries.ListSmBills(r.Context(), sm.ID)
+	smID := sm.ID
+	smBills, err := s.queries.ListSmBills(r.Context(), smID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
@@ -701,7 +728,9 @@ func (s *Server) HandleGetSmBillList(w http.ResponseWriter, r *http.Request) {
 		SmBillListTmpl{
 			SmBills: smBills,
 			Upper: SmUpperTmpl{
-				MmUpperTmpl: MmUpperTmpl{ID: sm.MmID}, Subid: sm.Subid},
+				MmUpperTmpl: MmUpperTmpl{MmID: sm.MmID},
+				SmID:        smID,
+			},
 		},
 	)
 }
@@ -727,7 +756,7 @@ func (s *Server) HandleGetMmBillList(w http.ResponseWriter, r *http.Request) {
 		w, r, tmplName,
 		MmBillListTmpl{
 			MmBills: bills,
-			Upper:   MmUpperTmpl{ID: mmID},
+			Upper:   MmUpperTmpl{MmID: mmID},
 		},
 	)
 }
@@ -736,98 +765,91 @@ func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request)
 	const tmplName = "mmBillOverview"
 
 	ctx := r.Context()
-	mm, ok := GetMm(ctx)
+	mmBill, ok := GetMmBill(ctx)
 	if !ok {
-		slog.Error("error getting main meter", "mainMeter", mm)
-		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
-		return
-	}
-	subid, err := GetSubidUrlParam(r)
-	if err != nil {
-		s.HandleNotFound(w, r)
-		return
-	}
-	mmID := mm.ID
-	bill, err := s.queries.GetMmBill(
-		ctx, spinusdb.GetMmBillParams{ID: mmID, Subid: subid})
-	if err != nil {
-		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		slog.Error("error getting main meter billing", "mainMeterBill", mmBill)
+		s.HandleInternalServerError(
+			w, r, errors.New("error getting main meter billing"),
+		)
 		return
 	}
 	s.renderTemplate(
 		w, r, tmplName,
 		MmBillOverviewTmpl{
-			MmBill: bill,
-			Upper:  MmBillUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: mmID}, Subid: subid},
+			GetMmBillRow: mmBill,
+			Upper:  MmBillUpperTmpl{
+				MmUpperTmpl: MmUpperTmpl{MmID: mmBill.FkMm},
+				MmBillID: mmBill.ID,
+			},
 		},
 	)
 }
 
-func (s *Server) HandleGetMmBillSmList(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmBillSmList"
-
-	ctx := r.Context()
-	mm, ok := GetMm(ctx)
-	if !ok {
-		slog.Error("error getting main meter", "mainMeter", mm)
-		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
-		return
-	}
-	subid, err := GetSubidUrlParam(r)
-	if err != nil {
-		s.HandleNotFound(w, r)
-		return
-	}
-	mmID := mm.ID
-	billSms, err := s.queries.ListMmBillSms(
-		ctx, spinusdb.ListMmBillSmsParams{ID: mmID, Subid: subid})
-	if err != nil {
-		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
-		return
-	}
-	s.renderTemplate(
-		w, r, tmplName,
-		MmBillSmListTmpl{
-			MmBillSms: billSms,
-			Upper: MmBillUpperTmpl{
-				MmUpperTmpl: MmUpperTmpl{ID: mmID}, Subid: subid},
-		},
-	)
-}
-
-func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmBillPeriodList"
-
-	ctx := r.Context()
-	mm, ok := GetMm(ctx)
-	if !ok {
-		slog.Error("error getting main meter", "mainMeter", mm)
-		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
-		return
-	}
-	subid, err := GetSubidUrlParam(r)
-	if err != nil {
-		s.HandleNotFound(w, r)
-		return
-	}
-	mmID := mm.ID
-	billPeriod, err := s.queries.ListMmBillPeriods(
-		ctx, spinusdb.ListMmBillPeriodsParams{ID: mmID, Subid: subid})
-	if err != nil {
-		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
-		return
-	}
-	s.renderTemplate(
-		w, r, tmplName,
-		MmBillPeriodListTmpl{
-			MmBillPeriods: billPeriod,
-			Upper:         MmBillUpperTmpl{MmUpperTmpl: MmUpperTmpl{ID: mmID}, Subid: subid},
-		},
-	)
-}
+// TODO
+// func (s *Server) HandleGetMmBillSmList(w http.ResponseWriter, r *http.Request) {
+// 	const tmplName = "mmBillSmList"
+//
+// 	ctx := r.Context()
+// 	mm, ok := GetMm(ctx)
+// 	if !ok {
+// 		slog.Error("error getting main meter", "mainMeter", mm)
+// 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+// 		return
+// 	}
+// 	subid, err := GetSubidUrlParam(r)
+// 	if err != nil {
+// 		s.HandleNotFound(w, r)
+// 		return
+// 	}
+// 	mmID := mm.ID
+// 	billSms, err := s.queries.ListMmBillSms(
+// 		ctx, spinusdb.ListMmBillSmsParams{ID: mmID, Subid: subid})
+// 	if err != nil {
+// 		slog.Error("error executing query", "err", err)
+// 		s.HandleInternalServerError(w, r, err)
+// 		return
+// 	}
+// 	s.renderTemplate(
+// 		w, r, tmplName,
+// 		MmBillSmListTmpl{
+// 			MmBillSms: billSms,
+// 			Upper: MmBillUpperTmpl{
+// 				MmUpperTmpl: MmUpperTmpl{MmID: mmID}, Subid: subid},
+// 		},
+// 	)
+// }
+//
+// func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Request) {
+// 	const tmplName = "mmBillPeriodList"
+//
+// 	ctx := r.Context()
+// 	mm, ok := GetMm(ctx)
+// 	if !ok {
+// 		slog.Error("error getting main meter", "mainMeter", mm)
+// 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+// 		return
+// 	}
+// 	subid, err := GetSubidUrlParam(r)
+// 	if err != nil {
+// 		s.HandleNotFound(w, r)
+// 		return
+// 	}
+// 	mmID := mm.ID
+// 	billPeriod, err := s.queries.ListMmBillPeriods(
+// 		ctx, spinusdb.ListMmBillPeriodsParams{ID: mmID, Subid: subid})
+// 	if err != nil {
+// 		slog.Error("error executing query", "err", err)
+// 		s.HandleInternalServerError(w, r, err)
+// 		return
+// 	}
+// 	s.renderTemplate(
+// 		w, r, tmplName,
+// 		MmBillPeriodListTmpl{
+// 			MmBillPeriods: billPeriod,
+// 			Upper:         MmBillUpperTmpl{MmUpperTmpl: MmUpperTmpl{MmID: mmID}, Subid: subid},
+// 		},
+// 	)
+// }
 
 func (s *Server) HandleGetMmBillCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mmBillCreate"
@@ -844,7 +866,7 @@ func (s *Server) HandleGetMmBillCreate(w http.ResponseWriter, r *http.Request) {
 		tmplName,
 		MmBillCreateTmpl{
 			MmBillForm: NewMmBillForm(),
-			Upper:      MmUpperTmpl{ID: mm.ID},
+			Upper:      MmUpperTmpl{MmID: mm.ID},
 		},
 	)
 }
@@ -864,13 +886,13 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 
 	var mmBillPeriodForms []*MmBillPeriodForm
 	var smBillForms SmBillForms
-	smIDBillForms := make(map[int32]*SmBillForm)
+	smIDBillForms := make(map[uuid.UUID]*SmBillForm)
 	tmplData := MmBillCreateTmpl{
 		MmBillForm: MmBillForm{
 			MmBillPeriods: mmBillPeriodForms,
 			SmBills:       smBillForms,
 		},
-		Upper: MmUpperTmpl{ID: mmID},
+		Upper: MmUpperTmpl{MmID: mmID},
 	}
 	var formErr bool
 	if err := r.ParseForm(); err != nil {
@@ -949,8 +971,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		mmBillPeriodForm.ServicePrice = iServicePrice
 		if parse {
 			mmBillPeriod := &spinusdb.CreateMmBillPeriodParams{}
-			mmBillPeriods = append(
-				mmBillPeriods, mmBillPeriod)
+			mmBillPeriods = append(mmBillPeriods, mmBillPeriod)
 			beginTime, err := parseDate(iBeginDate)
 			if err != nil {
 				mmBillPeriodForm.BeginDateErr = err.Error()
@@ -1047,8 +1068,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 					mmBill.EndDate = pgtype.Date{Time: endTime.Time, Valid: true}
 					mmBillMaxTime = endTime.Time
 				}
-				mmBill.ConsumEnergyPrice += float64(
-					consumEnergyPrice)
+				mmBill.ConsumEnergyPrice += float64(consumEnergyPrice)
 			}
 		}
 		mmBillPeriodIndex++
@@ -1100,9 +1120,9 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 
 	slog.Debug("billing", "calculationBreakPoints", calcBPs)
 	calcBPsLen := len(calcBPs)
-	bpRdgs := make(map[time.Time]map[int32]*Rdg)
-	laterRdgs := make(map[int32]*Rdg)
-	bpLastIndexes := make(map[int32]int)
+	bpRdgs := make(map[time.Time]map[uuid.UUID]*Rdg)
+	laterRdgs := make(map[uuid.UUID]*Rdg)
+	bpLastIndexes := make(map[uuid.UUID]int)
 	var additionalBPs BreakPoints  // From latest to earliest.
 	for _, smRdg := range smRdgs { // From latest to earliest.
 		rdgDate := smRdg.RdgDate
@@ -1133,7 +1153,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 					bpMax := bp[2]
 					_, ok := bpRdgs[bpActual]
 					if !ok {
-						bpRdgs[bpActual] = make(map[int32]*Rdg)
+						bpRdgs[bpActual] = make(map[uuid.UUID]*Rdg)
 					}
 					r, ok := bpRdgs[bpActual][smID]
 					if ok {
@@ -1170,7 +1190,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 					bpActual := bp[1]
 					_, ok := bpRdgs[bpActual]
 					if !ok {
-						bpRdgs[bpActual] = make(map[int32]*Rdg)
+						bpRdgs[bpActual] = make(map[uuid.UUID]*Rdg)
 					}
 					bpRdgs[bpActual][smID] = &Rdg{}
 				}
@@ -1238,7 +1258,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 			bpMax := bp[2]
 			_, ok := bpRdgs[bpActual]
 			if !ok {
-				bpRdgs[bpActual] = make(map[int32]*Rdg)
+				bpRdgs[bpActual] = make(map[uuid.UUID]*Rdg)
 			}
 			prevBpRdg, prevBpRdgOk := bpRdgs[bpActual][smID]
 			if rdgTime.After(bpMax) {
@@ -1289,9 +1309,9 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	additionalBPsLen := len(additionalBPs)
 	if additionalBPsLen > 0 {
 		sort.Sort(sort.Reverse(additionalBPs))
-		laterRdgs = make(map[int32]*Rdg)
-		bpLastIndexes = make(map[int32]int) // From latest to earliest.
-		for _, smRdg := range smRdgs {      // From latest to earliest.
+		laterRdgs = make(map[uuid.UUID]*Rdg)
+		bpLastIndexes = make(map[uuid.UUID]int) // From latest to earliest.
+		for _, smRdg := range smRdgs {          // From latest to earliest.
 			rdgDate := smRdg.RdgDate
 			smID := smRdg.SmID
 			rdgVal := smRdg.RdgVal.Float64
@@ -1313,7 +1333,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 					bpActual := bp[1]
 					_, ok := bpRdgs[bpActual]
 					if !ok {
-						bpRdgs[bpActual] = make(map[int32]*Rdg)
+						bpRdgs[bpActual] = make(map[uuid.UUID]*Rdg)
 					}
 					_, ok = bpRdgs[bpActual][smID]
 					if !ok {
@@ -1340,7 +1360,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 				bpMax := bp[2]
 				_, ok := bpRdgs[bpActual]
 				if !ok {
-					bpRdgs[bpActual] = make(map[int32]*Rdg)
+					bpRdgs[bpActual] = make(map[uuid.UUID]*Rdg)
 				}
 				prevBpRdg, prevBpRdgOk :=
 					bpRdgs[bpActual][smID]
@@ -1386,20 +1406,20 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		sort.Sort(sort.Reverse(calcBPs))
 	}
 
-	smList, err := qtx.ListSms(ctx, mmID)
+	smList, err := qtx.ListSms(ctx, mmID) // TODO: it could be created from sm rdgs, right?
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	sms := make(map[int32]spinusdb.ListSmsRow)
+	sms := make(map[uuid.UUID]spinusdb.ListSmsRow)
 	for _, sm := range smList {
 		sms[sm.ID] = sm
 	}
 
 	var smFinBalances []spinusdb.UpdateSmFinBalanceParams
-	smBills := make(map[int32]*spinusdb.CreateSmBillParams)
-	smBillPeriods := make(map[int]map[int32]*spinusdb.CreateSmBillPeriodParams)
+	smBills := make(map[uuid.UUID]*spinusdb.CreateSmBillParams)
+	smBillPeriods := make(map[int]map[uuid.UUID]*spinusdb.CreateSmBillPeriodParams)
 
 	calcBPsLen = len(calcBPs)
 
@@ -1415,7 +1435,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	var mmServicePricePerSm float64
 	mmBillPeriodIndex = 0
 	smBillPeriods[mmBillPeriodIndex] = make(
-		map[int32]*spinusdb.CreateSmBillPeriodParams)
+		map[uuid.UUID]*spinusdb.CreateSmBillPeriodParams)
 	mmBillPeriod := mmBillPeriods[mmBillPeriodIndex]
 	mmBeginTime := mmBillPeriod.BeginDate.Time
 	mmMinTime := mmBeginTime.AddDate(0, 0, -1) // Shifted one day back.
@@ -1491,8 +1511,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 					smBillPeriod.ServicePrice = pgtype.Float8{
 						Float64: mmServicePricePerSm, Valid: true}
 				}
-				smBillPeriods[mmBillPeriodIndex][smID] =
-					smBillPeriod
+				smBillPeriods[mmBillPeriodIndex][smID] = smBillPeriod
 			}
 			var energyConsum float64
 			laterRdg := laterBPRdgs[smID]
@@ -1508,8 +1527,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 				}
 			}
 			smBillPeriod.EnergyConsum += energyConsum
-			smBillPeriod.ConsumEnergyPrice +=
-				energyConsum * mmConsumEnergyPricePerUnit
+			smBillPeriod.ConsumEnergyPrice += energyConsum * mmConsumEnergyPricePerUnit
 		}
 		if bpActual.Equal(mmMinTime) {
 			// Earliest break point for current main meter billing period.
@@ -1526,14 +1544,13 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 					smBill = &spinusdb.CreateSmBillParams{FkSm: smID}
 					smBills[smID] = smBill
 					smForm = &SmBillForm{
-						ID:      smID,
-						Subid:   sm.Subid,
-						MeterID: sm.MeterID,
-						Email:   sm.Email,
+						ID:        smID,
+						CreatedTs: sm.CreatedTs.Time,
+						MeterID:   sm.MeterID,
+						Email:     sm.Email,
 					}
 					smIDBillForms[smID] = smForm
-					tmplData.SmBills = append(
-						tmplData.SmBills, smForm)
+					tmplData.SmBills = append(tmplData.SmBills, smForm)
 				}
 
 				energyConsum := smBillPeriod.EnergyConsum
@@ -1574,8 +1591,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 						servicePrice = smBill.ServicePrice.Float64
 					}
 					advancePrice := smBill.AdvancePrice
-					totalPrice := consumEnergyPrice + servicePrice +
-						advancePrice
+					totalPrice := consumEnergyPrice + servicePrice + advancePrice
 					sm := sms[smID]
 					finBal := sm.FinBalance
 					if totalPrice <= finBal {
@@ -1594,10 +1610,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 								ID:         smID,
 								FinBalance: newFinBal,
 							}
-						smFinBalances = append(
-							smFinBalances,
-							smFinBalance,
-						)
+						smFinBalances = append(smFinBalances, smFinBalance)
 					} else {
 						fromFinBalance := -finBal
 						toPay := totalPrice - finBal
@@ -1621,7 +1634,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 
 			// Prepare main meter billing period.
 			smBillPeriods[mmBillPeriodIndex] = make(
-				map[int32]*spinusdb.CreateSmBillPeriodParams)
+				map[uuid.UUID]*spinusdb.CreateSmBillPeriodParams)
 			mmBillPeriod = mmBillPeriods[mmBillPeriodIndex]
 			mmBeginTime = mmBillPeriod.BeginDate.Time
 			mmMinTime = mmBeginTime.AddDate(0, 0, -1)
@@ -1652,31 +1665,50 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		s.renderTemplate(w, r, tmplName, tmplData)
 		return
 	}
-	createdMmBill, err := qtx.CreateMmBill(ctx, mmBill)
+	mmBillID, err := uuid.NewV7()
+	if err != nil {
+		slog.Error("error getting UUIDv7", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	mmBill.ID = mmBillID
+	_, err = qtx.CreateMmBill(ctx, mmBill)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	createdMmBillID := createdMmBill.ID
 
-	createdSmBillIDs := make(map[int32]int32)
+	smBillIDs := make(map[uuid.UUID]uuid.UUID)
 
 	for smID, smBill := range smBills {
-		smBill.FkMmBill = createdMmBillID
-		createdSmBill, err := qtx.CreateSmBill(ctx, *smBill)
+		smBillID, err := uuid.NewV7()
+		if err != nil {
+			slog.Error("error getting UUIDv7", "err", err)
+			s.HandleInternalServerError(w, r, err)
+			return
+		}
+		smBill.ID = smBillID
+		smBill.FkMmBill = mmBillID
+		_, err = qtx.CreateSmBill(ctx, *smBill)
 		if err != nil {
 			slog.Error("error executing query", "err", err)
 			s.HandleInternalServerError(w, r, err)
 			return
 		}
-		createdSmBillIDs[smID] = createdSmBill.ID
+		smBillIDs[smID] = smBillID
 	}
 
 	for i, mmBillPrd := range mmBillPeriods {
-		mmBillPrd.FkMmBill = createdMmBillID
-		createdMmBillPeriod, err := qtx.CreateMmBillPeriod(
-			ctx, *mmBillPrd)
+		mmBillPrdID, err := uuid.NewV7()
+		if err != nil {
+			slog.Error("error getting UUIDv7", "err", err)
+			s.HandleInternalServerError(w, r, err)
+			return
+		}
+		mmBillPrd.ID = mmBillPrdID
+		mmBillPrd.FkMmBill = mmBillID
+		createdMmBillPeriod, err := qtx.CreateMmBillPeriod(ctx, *mmBillPrd)
 		if err != nil {
 			slog.Error("error executing query", "err", err)
 			s.HandleInternalServerError(w, r, err)
@@ -1685,9 +1717,16 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		createdMmBillPeriodID := createdMmBillPeriod.ID
 		smBillPrds := smBillPeriods[i]
 		for smID, smBillPrd := range smBillPrds {
-			smBillPrd.FkSmBill = createdSmBillIDs[smID]
+			smBillPrdID, err := uuid.NewV7()
+			if err != nil {
+				slog.Error("error getting UUIDv7", "err", err)
+				s.HandleInternalServerError(w, r, err)
+				return
+			}
+			smBillPrd.ID = smBillPrdID
+			smBillPrd.FkSmBill = smBillIDs[smID]
 			smBillPrd.FkMmBillPeriod = createdMmBillPeriodID
-			_, err := qtx.CreateSmBillPeriod(ctx, *smBillPrd)
+			_, err = qtx.CreateSmBillPeriod(ctx, *smBillPrd)
 			if err != nil {
 				slog.Error("error executing query", "err", err)
 				s.HandleInternalServerError(w, r, err)
@@ -1715,11 +1754,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(
 		w,
 		r,
-		fmt.Sprintf(
-			"/main-meter/%d/billing/%d/overview",
-			mm.ID,
-			createdMmBillID,
-		),
+		fmt.Sprintf("/main-meter-billing/%s/overview", mmBillID.String()),
 		http.StatusSeeOther,
 	)
 }

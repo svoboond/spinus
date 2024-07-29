@@ -65,7 +65,7 @@ func parsePassword(s string) (Password, error) {
 
 type MmID string
 
-func parseMmID(s string) (MmID, error) {
+func parseMmIdentification(s string) (MmID, error) {
 	v := MmID(strings.TrimSpace(s))
 	vLen := len(s)
 	switch {
@@ -74,7 +74,9 @@ func parseMmID(s string) (MmID, error) {
 	case vLen < 3:
 		return v, errors.New("Enter meter identification with at least 3 characters.")
 	case vLen > 64:
-		return v, errors.New("Enter meter identification with maximum of 64 characters.")
+		return v, errors.New(
+			"Enter meter identification with maximum of 64 characters.",
+		)
 	default:
 		return v, nil
 	}
@@ -117,14 +119,16 @@ func parseCurrencyCode(s string) (CurrencyCode, error) {
 
 type SmID string
 
-func parseSmID(s string) (SmID, error) {
+func parseSmIdentification(s string) (SmID, error) {
 	v := SmID(strings.TrimSpace(s))
 	vLen := len(s)
 	switch {
 	case v == "":
 		return v, nil
 	case vLen > 64:
-		return v, errors.New("Enter meter identification with maximum of 64 characters.")
+		return v, errors.New(
+			"Enter meter identification with maximum of 64 characters.",
+		)
 	default:
 		return v, nil
 	}

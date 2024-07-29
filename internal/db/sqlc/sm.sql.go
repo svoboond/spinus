@@ -8,27 +8,30 @@ package spinusdb
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createSm = `-- name: CreateSm :one
 INSERT INTO sm (
-	fk_mm, subid, meter_id, fin_balance, fk_user
-) SELECT $1, COALESCE(MAX(subid), 0) + 1, $2, $3, $4
-	FROM sm
-	WHERE fk_mm = $1
-RETURNING id, fk_mm, subid, meter_id, fin_balance, fk_user
+	id, fk_mm, meter_id, fin_balance, fk_user
+) VALUES (
+	$1, $2, $3, $4, $5
+)
+RETURNING id, created_ts, fk_mm, meter_id, fin_balance, fk_user
 `
 
 type CreateSmParams struct {
-	FkMm       int32
+	ID         uuid.UUID
+	FkMm       uuid.UUID
 	MeterID    pgtype.Text
 	FinBalance float64
-	FkUser     int32
+	FkUser     uuid.UUID
 }
 
 func (q *Queries) CreateSm(ctx context.Context, arg CreateSmParams) (Sm, error) {
 	row := q.db.QueryRow(ctx, createSm,
+		arg.ID,
 		arg.FkMm,
 		arg.MeterID,
 		arg.FinBalance,
@@ -37,8 +40,8 @@ func (q *Queries) CreateSm(ctx context.Context, arg CreateSmParams) (Sm, error) 
 	var i Sm
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedTs,
 		&i.FkMm,
-		&i.Subid,
 		&i.MeterID,
 		&i.FinBalance,
 		&i.FkUser,
@@ -50,7 +53,6 @@ const getSm = `-- name: GetSm :one
 SELECT
 	sm.id,
 	sm.fk_mm AS mm_id,
-	sm.subid,
 	sm.meter_id AS sm_id,
 	sm.fin_balance,
 	sm.fk_user AS sub_user_id,
@@ -65,35 +67,28 @@ JOIN spinus_user AS sub_user
 	ON sm.fk_user = sub_user.id
 JOIN spinus_user AS main_user
 	ON mm.fk_user = main_user.id
-WHERE fk_mm = $1 AND subid = $2
+WHERE sm.id = $1
 LIMIT 1
 `
 
-type GetSmParams struct {
-	FkMm  int32
-	Subid int32
-}
-
 type GetSmRow struct {
-	ID            int32
-	MmID          int32
-	Subid         int32
+	ID            uuid.UUID
+	MmID          uuid.UUID
 	SmID          pgtype.Text
 	FinBalance    float64
-	SubUserID     int32
+	SubUserID     uuid.UUID
 	SubUserEmail  string
 	Address       string
-	MainUserID    int32
+	MainUserID    uuid.UUID
 	MainUserEmail string
 }
 
-func (q *Queries) GetSm(ctx context.Context, arg GetSmParams) (GetSmRow, error) {
-	row := q.db.QueryRow(ctx, getSm, arg.FkMm, arg.Subid)
+func (q *Queries) GetSm(ctx context.Context, id uuid.UUID) (GetSmRow, error) {
+	row := q.db.QueryRow(ctx, getSm, id)
 	var i GetSmRow
 	err := row.Scan(
 		&i.ID,
 		&i.MmID,
-		&i.Subid,
 		&i.SmID,
 		&i.FinBalance,
 		&i.SubUserID,
@@ -106,23 +101,23 @@ func (q *Queries) GetSm(ctx context.Context, arg GetSmParams) (GetSmRow, error) 
 }
 
 const listSms = `-- name: ListSms :many
-SELECT sm.id, subid, meter_id, fin_balance, email
+SELECT sm.id, sm.created_ts, meter_id, fin_balance, email
 FROM sm
 JOIN spinus_user
 	ON sm.fk_user = spinus_user.id
 WHERE fk_mm = $1
-ORDER BY subid
+ORDER BY sm.created_ts
 `
 
 type ListSmsRow struct {
-	ID         int32
-	Subid      int32
+	ID         uuid.UUID
+	CreatedTs  pgtype.Timestamp
 	MeterID    pgtype.Text
 	FinBalance float64
 	Email      string
 }
 
-func (q *Queries) ListSms(ctx context.Context, fkMm int32) ([]ListSmsRow, error) {
+func (q *Queries) ListSms(ctx context.Context, fkMm uuid.UUID) ([]ListSmsRow, error) {
 	rows, err := q.db.Query(ctx, listSms, fkMm)
 	if err != nil {
 		return nil, err
@@ -133,7 +128,7 @@ func (q *Queries) ListSms(ctx context.Context, fkMm int32) ([]ListSmsRow, error)
 		var i ListSmsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Subid,
+			&i.CreatedTs,
 			&i.MeterID,
 			&i.FinBalance,
 			&i.Email,
@@ -155,7 +150,7 @@ WHERE id = $1
 `
 
 type UpdateSmFinBalanceParams struct {
-	ID         int32
+	ID         uuid.UUID
 	FinBalance float64
 }
 

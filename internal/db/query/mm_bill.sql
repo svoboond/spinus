@@ -2,14 +2,14 @@
 SELECT *
 FROM mm_bill
 WHERE fk_mm = $1
-ORDER BY subid DESC;
+ORDER BY created_ts DESC;
 
 -- name: GetMmBill :one
-SELECT mm_bill.*
+SELECT mm_bill.*, mm.fk_user
 FROM mm_bill
 JOIN mm
 	ON mm_bill.fk_mm = mm.id
-WHERE mm.id = $1 and subid = $2
+WHERE mm_bill.id = $1
 LIMIT 1;
 
 -- name: ListMmBillPeriods :many
@@ -19,12 +19,11 @@ JOIN mm
 	ON mm_bill.fk_mm = mm.id
 JOIN mm_bill_period
 	ON mm_bill.id = mm_bill_period.fk_mm_bill
-WHERE mm.id = $1 and mm_bill.subid = $2
-ORDER BY subid DESC;
+WHERE mm_bill.id = $1 AND mm.id = $2
+ORDER BY mm_bill_period.begin_date;
 
 -- name: ListMmBillSms :many
 SELECT
-	sm.subid,
 	sm.meter_id,
 	spinus_user.email,
 	sm_bill.energy_consum,
@@ -43,5 +42,5 @@ JOIN sm
 	ON sm_bill.fk_sm = sm.id
 JOIN spinus_user
 	ON sm.fk_user = spinus_user.id
-WHERE mm.id = $1 and mm_bill.subid = $2
-ORDER BY subid;
+WHERE mm_bill.id = $1 AND mm.id = $2
+ORDER BY sm.created_ts;

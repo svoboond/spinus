@@ -1,7 +1,5 @@
 -- name: ListSmBills :many
-SELECT sm_bill.*
+SELECT *
 FROM sm_bill
-JOIN sm
-	ON sm_bill.fk_sm = sm.id
-WHERE fk_mm = $1
-ORDER BY sm_bill.subid DESC;
+WHERE fk_sm = $1
+ORDER BY created_ts DESC;

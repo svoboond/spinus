@@ -7,35 +7,42 @@ package spinusdb
 
 import (
 	"context"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createMm = `-- name: CreateMm :one
 INSERT INTO mm (
+	id,
 	meter_id,
 	energy,
 	address,
 	currency_code,
 	fk_user
 ) VALUES (
-	TRIM($1),
-	$2,
-	TRIM($3),
-	UPPER(TRIM($4)),
-	$5
+	$1,
+	TRIM($2),
+	$3,
+	TRIM($4),
+	UPPER(TRIM($5)),
+	$6
 )
-RETURNING id, meter_id, energy, address, currency_code, fk_user
+RETURNING id, created_ts, meter_id, energy, address, currency_code, fk_user
 `
 
 type CreateMmParams struct {
+	ID           uuid.UUID
 	MeterID      string
 	Energy       Energy
 	Address      string
 	CurrencyCode string
-	FkUser       int32
+	FkUser       uuid.UUID
 }
 
 func (q *Queries) CreateMm(ctx context.Context, arg CreateMmParams) (Mm, error) {
 	row := q.db.QueryRow(ctx, createMm,
+		arg.ID,
 		arg.MeterID,
 		arg.Energy,
 		arg.Address,
@@ -45,6 +52,7 @@ func (q *Queries) CreateMm(ctx context.Context, arg CreateMmParams) (Mm, error) 
 	var i Mm
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedTs,
 		&i.MeterID,
 		&i.Energy,
 		&i.Address,
@@ -55,7 +63,7 @@ func (q *Queries) CreateMm(ctx context.Context, arg CreateMmParams) (Mm, error) 
 }
 
 const getMm = `-- name: GetMm :one
-SELECT mm.id, mm.meter_id, mm.energy, mm.address, mm.currency_code, mm.fk_user, spinus_user.email
+SELECT mm.id, mm.created_ts, mm.meter_id, mm.energy, mm.address, mm.currency_code, mm.fk_user, spinus_user.email
 FROM mm
 JOIN spinus_user
 	ON mm.fk_user = spinus_user.id
@@ -64,20 +72,22 @@ LIMIT 1
 `
 
 type GetMmRow struct {
-	ID           int32
+	ID           uuid.UUID
+	CreatedTs    pgtype.Timestamp
 	MeterID      string
 	Energy       Energy
 	Address      string
 	CurrencyCode string
-	FkUser       int32
+	FkUser       uuid.UUID
 	Email        string
 }
 
-func (q *Queries) GetMm(ctx context.Context, id int32) (GetMmRow, error) {
+func (q *Queries) GetMm(ctx context.Context, id uuid.UUID) (GetMmRow, error) {
 	row := q.db.QueryRow(ctx, getMm, id)
 	var i GetMmRow
 	err := row.Scan(
 		&i.ID,
+		&i.CreatedTs,
 		&i.MeterID,
 		&i.Energy,
 		&i.Address,
@@ -89,13 +99,13 @@ func (q *Queries) GetMm(ctx context.Context, id int32) (GetMmRow, error) {
 }
 
 const listUserMms = `-- name: ListUserMms :many
-SELECT id, meter_id, energy, address, currency_code, fk_user
+SELECT id, created_ts, meter_id, energy, address, currency_code, fk_user
 FROM mm
 WHERE fk_user = $1
-ORDER BY id
+ORDER BY created_ts
 `
 
-func (q *Queries) ListUserMms(ctx context.Context, fkUser int32) ([]Mm, error) {
+func (q *Queries) ListUserMms(ctx context.Context, fkUser uuid.UUID) ([]Mm, error) {
 	rows, err := q.db.Query(ctx, listUserMms, fkUser)
 	if err != nil {
 		return nil, err
@@ -106,6 +116,7 @@ func (q *Queries) ListUserMms(ctx context.Context, fkUser int32) ([]Mm, error) {
 		var i Mm
 		if err := rows.Scan(
 			&i.ID,
+			&i.CreatedTs,
 			&i.MeterID,
 			&i.Energy,
 			&i.Address,

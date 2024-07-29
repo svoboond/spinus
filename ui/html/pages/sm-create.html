@@ -9,8 +9,8 @@
 
 		<label for="meter-identification">Meter Identification</label>
 		<input type="text" name="meter-identification" id="meter-identification" maxlength="64"
-			{{ with .MeterID }} value="{{ . }}" {{ end }}>
-		{{ with .MeterIDErr }}
+			{{ with .MeterIdentification }} value="{{ . }}" {{ end }}>
+		{{ with .MeterIdentificationErr }}
 		<label class="error" for="meter-identification">{{ . }}</label>
 		{{ end }}
 

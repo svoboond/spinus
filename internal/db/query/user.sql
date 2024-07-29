@@ -18,10 +18,12 @@ LIMIT 1;
 
 -- name: CreateUser :one
 INSERT INTO spinus_user (
+	id,
 	username,
 	email,
 	password
 ) VALUES (
+	sqlc.arg(id),
 	TRIM(sqlc.arg(username)),
 	sqlc.arg(email),
 	crypt(sqlc.arg(password_crypt), gen_salt('bf'))

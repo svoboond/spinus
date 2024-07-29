@@ -7,19 +7,19 @@ package spinusdb
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const listSmBills = `-- name: ListSmBills :many
-SELECT sm_bill.id, sm_bill.fk_sm, sm_bill.fk_mm_bill, sm_bill.subid, sm_bill.energy_consum, sm_bill.consum_energy_price, sm_bill.service_price, sm_bill.advance_price, sm_bill.from_fin_balance, sm_bill.to_pay, sm_bill.status
+SELECT id, created_ts, fk_sm, fk_mm_bill, energy_consum, consum_energy_price, service_price, advance_price, from_fin_balance, to_pay, status
 FROM sm_bill
-JOIN sm
-	ON sm_bill.fk_sm = sm.id
-WHERE fk_mm = $1
-ORDER BY sm_bill.subid DESC
+WHERE fk_sm = $1
+ORDER BY created_ts DESC
 `
 
-func (q *Queries) ListSmBills(ctx context.Context, fkMm int32) ([]SmBill, error) {
-	rows, err := q.db.Query(ctx, listSmBills, fkMm)
+func (q *Queries) ListSmBills(ctx context.Context, fkSm uuid.UUID) ([]SmBill, error) {
+	rows, err := q.db.Query(ctx, listSmBills, fkSm)
 	if err != nil {
 		return nil, err
 	}
@@ -29,9 +29,9 @@ func (q *Queries) ListSmBills(ctx context.Context, fkMm int32) ([]SmBill, error)
 		var i SmBill
 		if err := rows.Scan(
 			&i.ID,
+			&i.CreatedTs,
 			&i.FkSm,
 			&i.FkMmBill,
-			&i.Subid,
 			&i.EnergyConsum,
 			&i.ConsumEnergyPrice,
 			&i.ServicePrice,
