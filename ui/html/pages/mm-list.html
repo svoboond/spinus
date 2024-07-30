@@ -4,7 +4,6 @@
         <li><a href="/main-meter/new">New Main Meter</a></li>
 	<table>
 		<tr>
-			<th>ID</th>
 			<th>Meter Identification</th>
 			<th>Energy</th>
 			<th>Address</th>
@@ -12,12 +11,13 @@
 		</tr>
 		{{ range . }}
 		<tr>
-			<td>{{ .ID }}</td>
 			<td>{{ .MeterID }}</td>
 			<td>{{ .Energy }}</td>
 			<td>{{ .Address }}</td>
 			<td>{{ .CurrencyCode }}</td>
-			<td><a href="/main-meter/{{ .ID }}/overview">Detail</a></td>
+			{{ with .ID }}
+			<td><a href="/main-meter/{{ .String }}/overview">Detail</a></td>
+			{{ end }}
 		</tr>
 		{{ end }}
 	</table>

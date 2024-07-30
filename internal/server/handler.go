@@ -449,7 +449,8 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmplData := SmCreateTmpl{SmForm: SmForm{}, Upper: MmUpperTmpl{MmID: mm.ID}}
+	mmID := mm.ID
+	tmplData := SmCreateTmpl{SmForm: SmForm{}, Upper: MmUpperTmpl{MmID: mmID}}
 	var formError bool
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
@@ -493,7 +494,7 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 		ctx,
 		spinusdb.CreateSmParams{
 			ID:         smID,
-			FkMm:       mm.ID,
+			FkMm:       mmID,
 			MeterID:    pgtype.Text{String: string(meterIdentification), Valid: true},
 			FinBalance: float64(finBalance),
 			FkUser:     userID,
@@ -506,7 +507,10 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(
-		w, r, fmt.Sprintf("/main-meter/%d/sub-meter/list", mm.ID), http.StatusSeeOther,
+		w,
+		r,
+		fmt.Sprintf("/main-meter/%s/sub-meter/list", mmID.String()),
+		http.StatusSeeOther,
 	)
 }
 
@@ -701,7 +705,10 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(
-		w, r, fmt.Sprintf("/sub-meter/%d/reading/list", smID), http.StatusSeeOther,
+		w,
+		r,
+		fmt.Sprintf("/sub-meter/%s/reading/list", smID.String()),
+		http.StatusSeeOther,
 	)
 }
 
@@ -777,9 +784,9 @@ func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request)
 		w, r, tmplName,
 		MmBillOverviewTmpl{
 			GetMmBillRow: mmBill,
-			Upper:  MmBillUpperTmpl{
+			Upper: MmBillUpperTmpl{
 				MmUpperTmpl: MmUpperTmpl{MmID: mmBill.FkMm},
-				MmBillID: mmBill.ID,
+				MmBillID:    mmBill.ID,
 			},
 		},
 	)

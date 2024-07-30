@@ -2,7 +2,7 @@
 <main>
 	{{ template "mmUpper" .Upper }}
 	<h1>Billings</h1>
-	<li><a href="/main-meter/{{ .Upper.ID }}/billing/new">New Billing</a></li>
+	<li><a href="/main-meter/{{ .Upper.MmID }}/billing/new">New Billing</a></li>
 	<table>
 		<tr>
 			<th>SubID</th>
@@ -19,7 +19,6 @@
 		</tr>
 		{{ range .MmBills }}
 		<tr>
-			<td>{{ .Subid }}</td>
 			<td>{{ .Status }}</td>
 			<td>{{ .MaxDayDiff }}</td>
 			<td><input type="date" disabled
@@ -42,7 +41,9 @@
 			<td>{{ .AdvancePrice }}</td>
 			<td>{{ .FromFinBalance }}</td>
 			<td>{{ .ToPay }}</td>
-			<td><a href="/main-meter/{{ $.Upper.ID }}/billing/{{ .Subid}}/overview">Detail</a></td>
+			{{ with .ID }}
+			<td><a href="/main-meter-billing/{{ .String }}/overview">Detail</a></td>
+			{{ end }}
 		</tr>
 		{{ end }}
 	</table>

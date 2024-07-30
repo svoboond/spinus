@@ -2,23 +2,23 @@
 <main>
 	{{ template "mmUpper" .Upper }}
 	<h1>Sub Meters</h1>
-        <li><a href="/main-meter/{{ .Upper.ID }}/sub-meter/new">New Sub Meter</a></li>
+        <li><a href="/main-meter/{{ .Upper.MmID }}/sub-meter/new">New Sub Meter</a></li>
 	<table>
 		<tr>
-			<th>SubID</th>
 			<th>Meter Identification</th>
 			<th>Financial Balance</th>
 			<th>User Email</th>
 		</tr>
 		{{ range .Sms }}
 		<tr>
-			<td>{{ .Subid }}</td>
 			{{ with .MeterID }}
 			<td>{{ .String }}</td>
 			{{ end }}
 			<td>{{ .FinBalance }}</td>
 			<td>{{ .Email }}</td>
-			<td><a href="/main-meter/{{ $.Upper.ID }}/sub-meter/{{ .Subid }}/overview">Detail</a></td>
+			{{ with .ID }}
+			<td><a href="/sub-meter/{{ .String }}/overview">Detail</a></td>
+			{{ end }}
 		</tr>
 		{{ end }}
 	</table>

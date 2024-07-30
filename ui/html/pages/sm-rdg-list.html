@@ -2,16 +2,16 @@
 <main>
 	{{ template "smUpper" .Upper }}
 	<h1>Sub Meter Readings</h1>
-	<li><a href="/main-meter/{{ .Upper.ID }}/sub-meter/{{ .Upper.Subid }}/reading/new">New Reading</a></li>
+	{{ with .Upper.SmID }}
+	<li><a href="/sub-meter/{{ .String }}/reading/new">New Reading</a></li>
+	{{ end }}
 	<table>
 		<tr>
-			<th>ID</th>
 			<th>Value</th>
 			<th>Date</th>
 		</tr>
 		{{ range .SmRdgs }}
 		<tr>
-			<td>{{ .ID }}</td>
 			<td>{{ printf "%.3f" .RdgVal }}</td>
 			<td><input type="date" disabled
 				{{ with .RdgDate }} value="{{ .Time.Format "2006-01-02" }}" {{ end }}></td>
