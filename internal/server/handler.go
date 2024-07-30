@@ -792,71 +792,67 @@ func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request)
 	)
 }
 
-// TODO
-// func (s *Server) HandleGetMmBillSmList(w http.ResponseWriter, r *http.Request) {
-// 	const tmplName = "mmBillSmList"
-//
-// 	ctx := r.Context()
-// 	mm, ok := GetMm(ctx)
-// 	if !ok {
-// 		slog.Error("error getting main meter", "mainMeter", mm)
-// 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
-// 		return
-// 	}
-// 	subid, err := GetSubidUrlParam(r)
-// 	if err != nil {
-// 		s.HandleNotFound(w, r)
-// 		return
-// 	}
-// 	mmID := mm.ID
-// 	billSms, err := s.queries.ListMmBillSms(
-// 		ctx, spinusdb.ListMmBillSmsParams{ID: mmID, Subid: subid})
-// 	if err != nil {
-// 		slog.Error("error executing query", "err", err)
-// 		s.HandleInternalServerError(w, r, err)
-// 		return
-// 	}
-// 	s.renderTemplate(
-// 		w, r, tmplName,
-// 		MmBillSmListTmpl{
-// 			MmBillSms: billSms,
-// 			Upper: MmBillUpperTmpl{
-// 				MmUpperTmpl: MmUpperTmpl{MmID: mmID}, Subid: subid},
-// 		},
-// 	)
-// }
-//
-// func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Request) {
-// 	const tmplName = "mmBillPeriodList"
-//
-// 	ctx := r.Context()
-// 	mm, ok := GetMm(ctx)
-// 	if !ok {
-// 		slog.Error("error getting main meter", "mainMeter", mm)
-// 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
-// 		return
-// 	}
-// 	subid, err := GetSubidUrlParam(r)
-// 	if err != nil {
-// 		s.HandleNotFound(w, r)
-// 		return
-// 	}
-// 	mmID := mm.ID
-// 	billPeriod, err := s.queries.ListMmBillPeriods(
-// 		ctx, spinusdb.ListMmBillPeriodsParams{ID: mmID, Subid: subid})
-// 	if err != nil {
-// 		slog.Error("error executing query", "err", err)
-// 		s.HandleInternalServerError(w, r, err)
-// 		return
-// 	}
-// 	s.renderTemplate(
-// 		w, r, tmplName,
-// 		MmBillPeriodListTmpl{
-// 			MmBillPeriods: billPeriod,
-// 			Upper:         MmBillUpperTmpl{MmUpperTmpl: MmUpperTmpl{MmID: mmID}, Subid: subid},
-// 		},
-// 	)
-// }
+func (s *Server) HandleGetMmBillSmList(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mmBillSmList"
+
+	ctx := r.Context()
+	mmBill, ok := GetMmBill(ctx)
+	if !ok {
+		slog.Error("error getting main meter billing", "mainMeterBill", mmBill)
+		s.HandleInternalServerError(
+			w, r, errors.New("error getting main meter billing"),
+		)
+		return
+	}
+	mmBillID := mmBill.ID
+	mmBillSms, err := s.queries.ListMmBillSms(ctx, mmBillID)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	s.renderTemplate(
+		w, r, tmplName,
+		MmBillSmListTmpl{
+			MmBillSms: mmBillSms,
+			Upper: MmBillUpperTmpl{
+				MmUpperTmpl: MmUpperTmpl{MmID: mmBill.FkMm},
+				MmBillID:    mmBillID,
+			},
+		},
+	)
+}
+
+func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Request) {
+	const tmplName = "mmBillPeriodList"
+
+	ctx := r.Context()
+	mmBill, ok := GetMmBill(ctx)
+	if !ok {
+		slog.Error("error getting main meter billing", "mainMeterBill", mmBill)
+		s.HandleInternalServerError(
+			w, r, errors.New("error getting main meter billing"),
+		)
+		return
+	}
+	mmBillID := mmBill.ID
+	mmBillPeriods, err := s.queries.ListMmBillPeriods(ctx, mmBillID)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r, err)
+		return
+	}
+	s.renderTemplate(
+		w, r, tmplName,
+		MmBillPeriodListTmpl{
+			MmBillPeriods: mmBillPeriods,
+			Upper: MmBillUpperTmpl{
+				MmUpperTmpl: MmUpperTmpl{MmID: mmBill.FkMm},
+				MmBillID:    mmBillID,
+			},
+		},
+	)
+}
 
 func (s *Server) HandleGetMmBillCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mmBillCreate"
@@ -1413,7 +1409,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		sort.Sort(sort.Reverse(calcBPs))
 	}
 
-	smList, err := qtx.ListSms(ctx, mmID) // TODO: it could be created from sm rdgs, right?
+	smList, err := qtx.ListSms(ctx, mmID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)

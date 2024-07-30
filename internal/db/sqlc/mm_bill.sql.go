@@ -63,21 +63,14 @@ func (q *Queries) GetMmBill(ctx context.Context, id uuid.UUID) (GetMmBillRow, er
 const listMmBillPeriods = `-- name: ListMmBillPeriods :many
 SELECT mm_bill_period.id, mm_bill_period.created_ts, mm_bill_period.fk_mm_bill, mm_bill_period.begin_date, mm_bill_period.end_date, mm_bill_period.begin_rdg_val, mm_bill_period.end_rdg_val, mm_bill_period.energy_consum, mm_bill_period.consum_energy_price, mm_bill_period.service_price, mm_bill_period.advance_price, mm_bill_period.total_price
 FROM mm_bill
-JOIN mm
-	ON mm_bill.fk_mm = mm.id
 JOIN mm_bill_period
 	ON mm_bill.id = mm_bill_period.fk_mm_bill
-WHERE mm_bill.id = $1 AND mm.id = $2
+WHERE mm_bill.id = $1
 ORDER BY mm_bill_period.begin_date
 `
 
-type ListMmBillPeriodsParams struct {
-	ID   uuid.UUID
-	ID_2 uuid.UUID
-}
-
-func (q *Queries) ListMmBillPeriods(ctx context.Context, arg ListMmBillPeriodsParams) ([]MmBillPeriod, error) {
-	rows, err := q.db.Query(ctx, listMmBillPeriods, arg.ID, arg.ID_2)
+func (q *Queries) ListMmBillPeriods(ctx context.Context, id uuid.UUID) ([]MmBillPeriod, error) {
+	rows, err := q.db.Query(ctx, listMmBillPeriods, id)
 	if err != nil {
 		return nil, err
 	}
@@ -121,22 +114,15 @@ SELECT
 	sm_bill.to_pay,
 	sm_bill.status
 FROM mm_bill
-JOIN mm
-	ON mm_bill.fk_mm = mm.id
 JOIN sm_bill
 	ON mm_bill.id = sm_bill.fk_mm_bill
 JOIN sm
 	ON sm_bill.fk_sm = sm.id
 JOIN spinus_user
 	ON sm.fk_user = spinus_user.id
-WHERE mm_bill.id = $1 AND mm.id = $2
+WHERE mm_bill.id = $1
 ORDER BY sm.created_ts
 `
-
-type ListMmBillSmsParams struct {
-	ID   uuid.UUID
-	ID_2 uuid.UUID
-}
 
 type ListMmBillSmsRow struct {
 	MeterID           pgtype.Text
@@ -150,8 +136,8 @@ type ListMmBillSmsRow struct {
 	Status            SmBillStatus
 }
 
-func (q *Queries) ListMmBillSms(ctx context.Context, arg ListMmBillSmsParams) ([]ListMmBillSmsRow, error) {
-	rows, err := q.db.Query(ctx, listMmBillSms, arg.ID, arg.ID_2)
+func (q *Queries) ListMmBillSms(ctx context.Context, id uuid.UUID) ([]ListMmBillSmsRow, error) {
+	rows, err := q.db.Query(ctx, listMmBillSms, id)
 	if err != nil {
 		return nil, err
 	}

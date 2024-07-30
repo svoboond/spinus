@@ -15,11 +15,9 @@ LIMIT 1;
 -- name: ListMmBillPeriods :many
 SELECT mm_bill_period.*
 FROM mm_bill
-JOIN mm
-	ON mm_bill.fk_mm = mm.id
 JOIN mm_bill_period
 	ON mm_bill.id = mm_bill_period.fk_mm_bill
-WHERE mm_bill.id = $1 AND mm.id = $2
+WHERE mm_bill.id = $1
 ORDER BY mm_bill_period.begin_date;
 
 -- name: ListMmBillSms :many
@@ -34,13 +32,11 @@ SELECT
 	sm_bill.to_pay,
 	sm_bill.status
 FROM mm_bill
-JOIN mm
-	ON mm_bill.fk_mm = mm.id
 JOIN sm_bill
 	ON mm_bill.id = sm_bill.fk_mm_bill
 JOIN sm
 	ON sm_bill.fk_sm = sm.id
 JOIN spinus_user
 	ON sm.fk_user = spinus_user.id
-WHERE mm_bill.id = $1 AND mm.id = $2
+WHERE mm_bill.id = $1
 ORDER BY sm.created_ts;
