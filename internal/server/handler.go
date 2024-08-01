@@ -12,10 +12,12 @@ import (
 	"sort"
 	"time"
 
+	"github.com/a-h/templ"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+	spinustmpl "github.com/svoboond/spinus/internal/tmpl"
 )
 
 const errorTmplName = "error"
@@ -27,28 +29,28 @@ type Upper struct {
 func (s *Server) HandleForbidden(w http.ResponseWriter, r *http.Request) {
 	const tmplData = "403 Forbidden"
 	w.WriteHeader(http.StatusForbidden)
-	s.renderTemplate(w, r, errorTmplName, tmplData)
+	s.legacyRenderTemplate(w, r, errorTmplName, tmplData)
 }
 
 func (s *Server) HandleNotFound(w http.ResponseWriter, r *http.Request) {
 	const tmplData = "404 Page Not Found"
 	w.WriteHeader(http.StatusNotFound)
-	s.renderTemplate(w, r, errorTmplName, tmplData)
+	s.legacyRenderTemplate(w, r, errorTmplName, tmplData)
 }
 
 func (s *Server) HandleNotAllowed(w http.ResponseWriter, r *http.Request) {
 	const tmplData = "405 Method Not Allowed"
 	w.WriteHeader(http.StatusMethodNotAllowed)
-	s.renderTemplate(w, r, errorTmplName, tmplData)
+	s.legacyRenderTemplate(w, r, errorTmplName, tmplData)
 }
 
 func (s *Server) HandleInternalServerError(
 	w http.ResponseWriter, r *http.Request, err error) {
 
-	s.renderTemplate(w, r, errorTmplName, err.Error())
+	s.legacyRenderTemplate(w, r, errorTmplName, err.Error())
 }
 
-func (s *Server) renderTemplate(
+func (s *Server) legacyRenderTemplate(
 	w http.ResponseWriter, r *http.Request, name string, data any) {
 
 	const upperTmplName = "upper"
@@ -77,19 +79,46 @@ func (s *Server) renderTemplate(
 	}
 }
 
+func (s *Server) renderTemplate(
+	w http.ResponseWriter, r *http.Request, component templ.Component) {
+	ctx := r.Context()
+	userID, ok := GetUserID(ctx)
+	if !ok {
+		slog.Error("error getting user ID", "userID", userID)
+		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+		return
+	}
+	var buf bytes.Buffer
+	var userLoggedIn bool
+	if r.Context().Value(userIDKey) != emptyUserIDVal {
+		userLoggedIn = true
+	}
+	upper := spinustmpl.Upper{UserLoggedIn: userLoggedIn}
+	if err := spinustmpl.Layout(upper, component).Render(ctx, &buf); err != nil {
+		slog.Error("error rendering template", "component", component, "err", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_, err := buf.WriteTo(w)
+	if err != nil {
+		slog.Error("error writing to buffer", "component", component, "err", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func (s *Server) HandleGetIndex(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "index"
-	s.renderTemplate(w, r, tmplName, nil)
+	s.renderTemplate(w, r, spinustmpl.Index())
 }
 
 func (s *Server) HandleGetSignUp(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "signUp"
-	s.renderTemplate(w, r, tmplName, nil)
+	s.legacyRenderTemplate(w, r, tmplName, nil)
 }
 
 func (s *Server) HandleGetLogIn(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "logIn"
-	s.renderTemplate(w, r, tmplName, nil)
+	s.legacyRenderTemplate(w, r, tmplName, nil)
 }
 
 func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +190,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if formError {
-		s.renderTemplate(w, r, tmplName, form)
+		s.legacyRenderTemplate(w, r, tmplName, form)
 		return
 	}
 
@@ -214,7 +243,7 @@ func (s *Server) HandlePostLogOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx = context.WithValue(ctx, userIDKey, emptyUserIDVal)
-	s.renderTemplate(w, r.WithContext(ctx), tmplName, nil)
+	s.legacyRenderTemplate(w, r.WithContext(ctx), tmplName, nil)
 }
 
 func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
@@ -249,7 +278,7 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if formError {
-		s.renderTemplate(w, r, tmplName, form)
+		s.legacyRenderTemplate(w, r, tmplName, form)
 		return
 	}
 
@@ -262,7 +291,7 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			form.GeneralErr = "Wrong username or password."
-			s.renderTemplate(w, r, tmplName, form)
+			s.legacyRenderTemplate(w, r, tmplName, form)
 		} else {
 			slog.Error("error executing query", "err", err)
 			s.HandleInternalServerError(w, r, err)
@@ -304,12 +333,12 @@ func (s *Server) HandleGetMmList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.renderTemplate(w, r, tmplName, mms)
+	s.legacyRenderTemplate(w, r, tmplName, mms)
 }
 
 func (s *Server) HandleGetMmCreate(w http.ResponseWriter, r *http.Request) {
 	const tmplName = "mmCreate"
-	s.renderTemplate(w, r, tmplName, nil)
+	s.legacyRenderTemplate(w, r, tmplName, nil)
 }
 
 func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
@@ -360,7 +389,7 @@ func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if formError {
-		s.renderTemplate(w, r, tmplName, form)
+		s.legacyRenderTemplate(w, r, tmplName, form)
 		return
 	}
 
@@ -412,7 +441,7 @@ func (s *Server) HandleGetMmOverview(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r, tmplName, MmOverviewTmpl{GetMmRow: mm, Upper: MmUpperTmpl{MmID: mm.ID}},
 	)
 }
@@ -427,7 +456,7 @@ func (s *Server) HandleGetSmCreate(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r, tmplName, SmCreateTmpl{SmForm: SmForm{}, Upper: MmUpperTmpl{MmID: mm.ID}},
 	)
 }
@@ -480,7 +509,7 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if formError {
-		s.renderTemplate(w, r, tmplName, tmplData)
+		s.legacyRenderTemplate(w, r, tmplName, tmplData)
 		return
 	}
 
@@ -533,7 +562,7 @@ func (s *Server) HandleGetSmList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r,
 		tmplName,
 		SmListTmpl{
@@ -554,7 +583,7 @@ func (s *Server) HandleGetSmOverview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r,
 		tmplName,
 		SmOverviewTmpl{
@@ -584,7 +613,7 @@ func (s *Server) HandleGetSmRdgList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r,
 		tmplName,
 		SmRdgListTmpl{
@@ -607,7 +636,7 @@ func (s *Server) HandleGetSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
 		return
 	}
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r,
 		tmplName,
 		SmRdgCreateTmpl{
@@ -679,7 +708,7 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if formError {
-		s.renderTemplate(w, r, tmplName, tmplData)
+		s.legacyRenderTemplate(w, r, tmplName, tmplData)
 		return
 	}
 
@@ -729,7 +758,7 @@ func (s *Server) HandleGetSmBillList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r,
 		tmplName,
 		SmBillListTmpl{
@@ -759,7 +788,7 @@ func (s *Server) HandleGetMmBillList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r, tmplName,
 		MmBillListTmpl{
 			MmBills: bills,
@@ -780,7 +809,7 @@ func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request)
 		)
 		return
 	}
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r, tmplName,
 		MmBillOverviewTmpl{
 			GetMmBillRow: mmBill,
@@ -811,7 +840,7 @@ func (s *Server) HandleGetMmBillSmList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r, tmplName,
 		MmBillSmListTmpl{
 			MmBillSms: mmBillSms,
@@ -842,7 +871,7 @@ func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Reques
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r, tmplName,
 		MmBillPeriodListTmpl{
 			MmBillPeriods: mmBillPeriods,
@@ -864,7 +893,7 @@ func (s *Server) HandleGetMmBillCreate(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
-	s.renderTemplate(
+	s.legacyRenderTemplate(
 		w, r,
 		tmplName,
 		MmBillCreateTmpl{
@@ -948,7 +977,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	billPeriodsLen := len(iBeginDates)
 	if billPeriodsLen == 0 {
 		tmplData.GeneralErr = "No billing period provided."
-		s.renderTemplate(w, r, tmplName, tmplData)
+		s.legacyRenderTemplate(w, r, tmplName, tmplData)
 		return
 	}
 	billPeriodsLastIndex := billPeriodsLen - 1
@@ -1079,18 +1108,18 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	slices.Reverse(tmplData.MmBillPeriods)
 	if addBillPeriod {
 		tmplData.MmBillPeriods = append(tmplData.MmBillPeriods, &MmBillPeriodForm{})
-		s.renderTemplate(w, r, tmplName, tmplData)
+		s.legacyRenderTemplate(w, r, tmplName, tmplData)
 		return
 	} else if removeBillPeriod {
 		if billPeriodsLen > 1 {
 			tmplData.MmBillPeriods = tmplData.MmBillPeriods[:billPeriodsLastIndex]
 		}
-		s.renderTemplate(w, r, tmplName, tmplData)
+		s.legacyRenderTemplate(w, r, tmplName, tmplData)
 		return
 	}
 
 	if formErr {
-		s.renderTemplate(w, r, tmplName, tmplData)
+		s.legacyRenderTemplate(w, r, tmplName, tmplData)
 		return
 	}
 
@@ -1117,7 +1146,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	rdgLen := len(smRdgs)
 	if rdgLen == 0 {
 		tmplData.GeneralErr = "There is no sub meter."
-		s.renderTemplate(w, r, tmplName, tmplData)
+		s.legacyRenderTemplate(w, r, tmplName, tmplData)
 		return
 	}
 
@@ -1665,7 +1694,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	if r.PostFormValue("calculate-bill") != "" {
 		tmplData.Calculated = true
 		sort.Sort(tmplData.SmBills)
-		s.renderTemplate(w, r, tmplName, tmplData)
+		s.legacyRenderTemplate(w, r, tmplName, tmplData)
 		return
 	}
 	mmBillID, err := uuid.NewV7()

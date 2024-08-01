@@ -29,8 +29,8 @@ const userIDKey userIDCtx = "userID"
 var emptyUserIDVal uuid.UUID
 
 func GetUserID(ctx context.Context) (uuid.UUID, bool) {
-	id, ok := ctx.Value(userIDKey).(uuid.UUID)
-	return id, ok
+	userID, ok := ctx.Value(userIDKey).(uuid.UUID)
+	return userID, ok
 }
 
 func (s *Server) WithUserID(h http.Handler) http.Handler {

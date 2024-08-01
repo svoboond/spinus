@@ -1,0 +1,28 @@
+package tmpl
+
+templ Layout(upper Upper, content templ.Component) {
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<title>Spinus</title>
+			<meta charset="UTF-8"/>
+			<link rel="stylesheet" href="/static/style.css"/>
+		</head>
+		<body>
+			<ul>
+				if upper.UserLoggedIn {
+					<li>
+						<form method="post" action="/logout">
+							<input type="submit" value="Log Out"/>
+						</form>
+					</li>
+				} else {
+					<li><a href="/signup">Sign Up</a></li>
+					<li><a href="/login">Log In</a></li>
+				}
+				<li><a href="/main-meter/list">My Main Meters</a></li>
+			</ul>
+		</body>
+		@content
+	</html>
+}

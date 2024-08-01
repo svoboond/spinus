@@ -1,0 +1,44 @@
+apiVersion: skaffold/v3
+kind: Config
+metadata:
+  name: spinus-tools
+build:
+  artifacts:
+    - image: spinus-tools
+      context: .
+      docker:
+        dockerfile: tools/spinus-tools/Dockerfile
+  local:
+    push: false
+    useBuildkit: true
+deploy:
+  helm:
+    releases:
+      - name: spinus-tools-local-dev
+        chartPath: tools/spinus-tools/helm
+        valuesFiles:
+          - siteconfig/local-dev.yaml
+        namespace: spinus-local-dev
+        setValueTemplates:
+          image.repository: "{{.IMAGE_REPO_spinus_tools}}"
+          image.tag: "{{.IMAGE_TAG_spinus_tools}}@{{.IMAGE_DIGEST_spinus_tools}}"
+  kubeContext: local-dev
+profiles:
+  - name: local-dev
+    activation:
+      - kubeContext: local-dev
+    build:
+      tagPolicy:
+        sha256: {}
+  - name: nocache
+    patches:
+      - op: add
+        path: /build/artifacts/0/docker/noCache
+        value: true
+  - name: create-namespace
+    activation:
+      - kubeContext: "!(.*prod.*)"
+    patches:
+      - op: add
+        path: /deploy/helm/releases/0/createNamespace
+        value: true
