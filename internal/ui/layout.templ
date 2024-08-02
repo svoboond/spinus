@@ -1,4 +1,4 @@
-package tmpl
+package ui
 
 templ Layout(upper Upper, content templ.Component) {
 	<!DOCTYPE html>
@@ -22,7 +22,9 @@ templ Layout(upper Upper, content templ.Component) {
 				}
 				<li><a href="/main-meter/list">My Main Meters</a></li>
 			</ul>
+			<main>
+				@content
+			</main>
 		</body>
-		@content
 	</html>
 }

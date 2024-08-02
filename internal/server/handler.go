@@ -17,7 +17,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
-	spinustmpl "github.com/svoboond/spinus/internal/tmpl"
+	"github.com/svoboond/spinus/internal/ui"
 )
 
 const errorTmplName = "error"
@@ -93,8 +93,8 @@ func (s *Server) renderTemplate(
 	if r.Context().Value(userIDKey) != emptyUserIDVal {
 		userLoggedIn = true
 	}
-	upper := spinustmpl.Upper{UserLoggedIn: userLoggedIn}
-	if err := spinustmpl.Layout(upper, component).Render(ctx, &buf); err != nil {
+	upper := ui.Upper{UserLoggedIn: userLoggedIn}
+	if err := ui.Layout(upper, component).Render(ctx, &buf); err != nil {
 		slog.Error("error rendering template", "component", component, "err", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -108,7 +108,7 @@ func (s *Server) renderTemplate(
 }
 
 func (s *Server) HandleGetIndex(w http.ResponseWriter, r *http.Request) {
-	s.renderTemplate(w, r, spinustmpl.Index())
+	s.renderTemplate(w, r, ui.Index())
 }
 
 func (s *Server) HandleGetSignUp(w http.ResponseWriter, r *http.Request) {
@@ -117,8 +117,7 @@ func (s *Server) HandleGetSignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleGetLogIn(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "logIn"
-	s.legacyRenderTemplate(w, r, tmplName, nil)
+	s.renderTemplate(w, r, ui.LogIn(ui.LogInForm{}))
 }
 
 func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
@@ -270,7 +269,6 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	iPassword := r.PostFormValue("password")
-	form.Password = iPassword
 	password, err := parsePassword(iPassword)
 	if err != nil {
 		form.PasswordErr = err.Error()
@@ -317,8 +315,6 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleGetMmList(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmList"
-
 	ctx := r.Context()
 	userID, ok := GetUserID(ctx)
 	if !ok {
@@ -332,8 +328,7 @@ func (s *Server) HandleGetMmList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-
-	s.legacyRenderTemplate(w, r, tmplName, mms)
+	s.renderTemplate(w, r, ui.MmList(mms))
 }
 
 func (s *Server) HandleGetMmCreate(w http.ResponseWriter, r *http.Request) {

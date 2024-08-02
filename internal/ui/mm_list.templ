@@ -1,0 +1,25 @@
+package ui
+
+import spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+
+templ MmList(mms []spinusdb.Mm) {
+	<h1>My Main Meters</h1>
+        <li><a href="/main-meter/new">New Main Meter</a></li>
+	<table>
+		<tr>
+			<th>Meter Identification</th>
+			<th>Energy</th>
+			<th>Address</th>
+			<th>Currency Code</th>
+		</tr>
+		for _, mm := range mms {
+		<tr>
+			<td>{ mm.MeterID }</td>
+			<td>{ string(mm.Energy) }</td>
+			<td>{ mm.Address }</td>
+			<td>{ mm.CurrencyCode }</td>
+			<td><a href="/main-meter/{ mm.ID.String }/overview">Detail</a></td>
+		</tr>
+		}
+	</table>
+}

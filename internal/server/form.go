@@ -21,7 +21,6 @@ type LogInForm struct {
 	GeneralErr  string
 	Username    string
 	UsernameErr string
-	Password    string
 	PasswordErr string
 }
 

@@ -47,7 +47,7 @@ sqlc-generate: sqlc-clean spinus-tools-run
 
 templ-generate: spinus-tools-run
 	kubectl -n spinus-local-dev exec spinus-tools-local-dev-0 -- ./templ generate
-	kubectl -n spinus-local-dev cp spinus-tools-local-dev-0:/app/internal/tmpl internal/tmpl
+	kubectl -n spinus-local-dev cp spinus-tools-local-dev-0:/app/internal/ui internal/ui
 	$(MAKE) --no-print-directory spinus-tools-delete
 
 up: helm-dependency-update

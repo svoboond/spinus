@@ -1,0 +1,27 @@
+package ui
+
+templ LogIn(form LogInForm) {
+	<h1>Log in</h1>
+	<form method="post">
+		if form.GeneralErr != "" {
+			<span class="error">{ form.GeneralErr }</span>
+		}
+		<label for="username">Username (Required)</label>
+		<input
+			type="text"
+			name="username"
+			maxlength="128"
+			required
+			value={ form.Username }
+		/>
+		if form.UsernameErr != "" {
+			<label class="error" for="username">{ form.UsernameErr }</label>
+		}
+		<label for="password">Password (Required)</label>
+		<input type="password" name="password" maxlength="128" required/>
+		if form.PasswordErr != "" {
+			<label class="error" for="password">{ form.PasswordErr }</label>
+		}
+		<input type="submit" value="Log in"/>
+	</form>
+}
