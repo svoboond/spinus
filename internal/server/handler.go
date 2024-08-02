@@ -20,34 +20,31 @@ import (
 	"github.com/svoboond/spinus/internal/ui"
 )
 
-const errorTmplName = "error"
-
-type Upper struct {
+type Upper struct { // TODO: delete
 	UserLoggedIn bool
 }
 
 func (s *Server) HandleForbidden(w http.ResponseWriter, r *http.Request) {
-	const tmplData = "403 Forbidden"
+	const msg = "403 Forbidden"
 	w.WriteHeader(http.StatusForbidden)
-	s.legacyRenderTemplate(w, r, errorTmplName, tmplData)
+	s.renderTemplate(w, r, ui.Error(msg))
 }
 
 func (s *Server) HandleNotFound(w http.ResponseWriter, r *http.Request) {
-	const tmplData = "404 Page Not Found"
+	const msg = "404 Page Not Found"
 	w.WriteHeader(http.StatusNotFound)
-	s.legacyRenderTemplate(w, r, errorTmplName, tmplData)
+	s.renderTemplate(w, r, ui.Error(msg))
 }
 
 func (s *Server) HandleNotAllowed(w http.ResponseWriter, r *http.Request) {
-	const tmplData = "405 Method Not Allowed"
+	const msg = "405 Method Not Allowed"
 	w.WriteHeader(http.StatusMethodNotAllowed)
-	s.legacyRenderTemplate(w, r, errorTmplName, tmplData)
+	s.renderTemplate(w, r, ui.Error(msg))
 }
 
 func (s *Server) HandleInternalServerError(
 	w http.ResponseWriter, r *http.Request, err error) {
-
-	s.legacyRenderTemplate(w, r, errorTmplName, err.Error())
+	s.renderTemplate(w, r, ui.Error(err.Error()))
 }
 
 func (s *Server) legacyRenderTemplate(
@@ -112,32 +109,21 @@ func (s *Server) HandleGetIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleGetSignUp(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "signUp"
-	s.legacyRenderTemplate(w, r, tmplName, nil)
-}
-
-func (s *Server) HandleGetLogIn(w http.ResponseWriter, r *http.Request) {
-	s.renderTemplate(w, r, ui.LogIn(ui.LogInForm{}))
+	s.renderTemplate(w, r, ui.SignUp(ui.SignUpForm{}))
 }
 
 func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "signUp"
-
-	form := SignUpForm{}
-	var formError bool
+	form := ui.SignUpForm{}
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
 		form.GeneralErr = "Bad request"
-		if err := s.templates.Render(w, tmplName, form); err != nil {
-			slog.Error("error rendering template", "template", tmplName, "err", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		s.renderTemplate(w, r, ui.SignUp(form))
 		return
 	}
 
 	ctx := r.Context()
 
+	var formError bool
 	iUsername := r.PostFormValue("username")
 	form.Username = iUsername
 	username, err := parseUsername(iUsername)
@@ -189,7 +175,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if formError {
-		s.legacyRenderTemplate(w, r, tmplName, form)
+		s.renderTemplate(w, r, ui.SignUp(form))
 		return
 	}
 
@@ -218,7 +204,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.sessionManager.Put(ctx, "userID", user.ID)
+	s.sessionManager.Put(ctx, "userID", user.ID.String())
 
 	query := r.URL.Query()
 	next := query.Get("next")
@@ -231,35 +217,20 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func (s *Server) HandlePostLogOut(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "logOut"
-
-	ctx := r.Context()
-	if err := s.sessionManager.Destroy(ctx); err != nil {
-		slog.Error("error destroying token", "err", err)
-		ctx = context.WithValue(ctx, userIDKey, emptyUserIDVal)
-		s.HandleInternalServerError(w, r.WithContext(ctx), err)
-		return
-	}
-	ctx = context.WithValue(ctx, userIDKey, emptyUserIDVal)
-	s.legacyRenderTemplate(w, r.WithContext(ctx), tmplName, nil)
+func (s *Server) HandleGetLogIn(w http.ResponseWriter, r *http.Request) {
+	s.renderTemplate(w, r, ui.LogIn(ui.LogInForm{}))
 }
 
 func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "logIn"
-	form := LogInForm{}
-	var formError bool
+	form := ui.LogInForm{}
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
 		form.GeneralErr = "Bad request"
-		if err := s.templates.Render(w, tmplName, form); err != nil {
-			slog.Error("error rendering template", "template", tmplName, "err", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		s.renderTemplate(w, r, ui.LogIn(form))
 		return
 	}
 
+	var formError bool
 	iUsername := r.PostFormValue("username")
 	form.Username = iUsername
 	username, err := parseUsername(iUsername)
@@ -267,16 +238,14 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 		form.UsernameErr = err.Error()
 		formError = true
 	}
-
 	iPassword := r.PostFormValue("password")
 	password, err := parsePassword(iPassword)
 	if err != nil {
 		form.PasswordErr = err.Error()
 		formError = true
 	}
-
 	if formError {
-		s.legacyRenderTemplate(w, r, tmplName, form)
+		s.renderTemplate(w, r, ui.LogIn(form))
 		return
 	}
 
@@ -289,7 +258,7 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			form.GeneralErr = "Wrong username or password."
-			s.legacyRenderTemplate(w, r, tmplName, form)
+			s.renderTemplate(w, r, ui.LogIn(form))
 		} else {
 			slog.Error("error executing query", "err", err)
 			s.HandleInternalServerError(w, r, err)
@@ -312,6 +281,18 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (s *Server) HandlePostLogOut(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if err := s.sessionManager.Destroy(ctx); err != nil {
+		slog.Error("error destroying token", "err", err)
+		ctx = context.WithValue(ctx, userIDKey, emptyUserIDVal)
+		s.HandleInternalServerError(w, r.WithContext(ctx), err)
+		return
+	}
+	ctx = context.WithValue(ctx, userIDKey, emptyUserIDVal)
+	s.renderTemplate(w, r.WithContext(ctx), ui.LogOut())
 }
 
 func (s *Server) HandleGetMmList(w http.ResponseWriter, r *http.Request) {

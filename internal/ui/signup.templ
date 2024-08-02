@@ -1,0 +1,43 @@
+package ui
+
+templ SignUp(form SignUpForm) {
+	<h1>Create Account</h1>
+	<form method="post">
+		if form.GeneralErr != "" {
+			<span class="error">{ form.GeneralErr }</span>
+		}
+		<label for="username">Username (Required)</label>
+		<input
+			type="text"
+			name="username"
+			maxlength="128"
+			required
+			value={ form.Username }
+		/>
+		if form.UsernameErr != "" {
+			<label class="error" for="username">{ form.UsernameErr }</label>
+		}
+		<label for="email">Email (Required)</label>
+		<input
+			type="email"
+			name="email"
+			maxlength="128"
+			required
+			value={ form.Email }
+		/>
+		if form.EmailErr != "" {
+			<label class="error" for="email">{ form.EmailErr }</label>
+		}
+		<label for="password">Password (Required)</label>
+		<input type="password" name="password" minlength="8" maxlength="128" required/>
+		if form.PasswordErr != "" {
+			<label class="error" for="password">{ form.PasswordErr }</label>
+		}
+		<label for="repeat-password">Repeat password (Required)</label>
+		<input type="password" name="repeat-password" minlength="8" maxlength="128" required/>
+		if form.RepeatPasswordErr != "" {
+			<label class="error" for="repeat-password">{ form.RepeatPasswordErr }</label>
+		}
+		<input type="submit" value="Create account"/>
+	</form>
+}
