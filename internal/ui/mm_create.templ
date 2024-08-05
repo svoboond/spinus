@@ -1,0 +1,59 @@
+package ui
+
+templ MmCreate(form MmForm) {
+	<h1>Create Account</h1>
+	<form method="post">
+		if form.GeneralErr != "" {
+			<span class="error">{ form.GeneralErr }</span>
+		}
+		<label for="meter-identification">Meter Identification (Required)</label>
+		<input
+			type="text"
+			name="meter-identification"
+			id="meter-identification"
+			minlength="3"
+			maxlength="64"
+			required
+			value={ form.MeterIdentification }
+		/>
+		if form.MeterIdentificationErr != "" {
+			<label class="error" for="username">{ form.MeterIdentificationErr }</label>
+		}
+		<label for="energy">Energy (Required)</label>
+		<select name="energy" id="energy" required>
+			<option value="">-- Select --</option>
+			<option
+				value="electricity"
+				if form.Energy == "electricity" {
+					selected
+				}
+			>Electricity</option>
+			<option
+				value="gas"
+				if form.Energy == "gas" {
+					selected
+				}
+			>Gas</option>
+			<option
+				value="water"
+				if form.Energy == "water" {
+					selected
+				}
+			>Gas</option>
+		</select>
+		if form.EnergyErr != "" {
+			<label class="error" for="energy">{ form.EnergyErr }</label>
+		}
+		<label for="address">Address (Required)</label>
+		<input type="text" name="address" id="address" minlength="8" maxlength="255" required value={ form.Address }/>
+		if form.AddressErr != "" {
+			<label class="error" for="address">{ form.AddressErr }</label>
+		}
+		<label for="currency-code">Currency Code (Required)</label>
+		<input type="text" name="currency-code" id="currency-code" minlength="3" maxlength="3" required value={ form.CurrencyCode }/>
+		if form.CurrencyCodeErr != "" {
+			<label class="error" for="currency-code">{ form.CurrencyCodeErr }</label>
+		}
+		<input type="submit" value="Create"/>
+	</form>
+}

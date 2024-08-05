@@ -17,3 +17,15 @@ type LogInForm struct {
 	UsernameErr string
 	PasswordErr string
 }
+
+type MmForm struct {
+	GeneralErr             string
+	MeterIdentification    string
+	MeterIdentificationErr string
+	Energy                 string
+	EnergyErr              string
+	Address                string
+	AddressErr             string
+	CurrencyCode           string
+	CurrencyCodeErr        string
+}

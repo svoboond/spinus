@@ -313,25 +313,19 @@ func (s *Server) HandleGetMmList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleGetMmCreate(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmCreate"
-	s.legacyRenderTemplate(w, r, tmplName, nil)
+	s.renderTemplate(w, r, ui.MmCreate(ui.MmForm{}))
 }
 
 func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmCreate"
-	form := MmForm{}
-	var formError bool
+	form := ui.MmForm{}
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
 		form.GeneralErr = "Bad request"
-		if err := s.templates.Render(w, tmplName, form); err != nil {
-			slog.Error("error rendering template", "template", tmplName, "err", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		s.renderTemplate(w, r, ui.MmCreate(form))
 		return
 	}
 
+	var formError bool
 	iMeterID := r.PostFormValue("meter-identification")
 	form.MeterIdentification = iMeterID
 	meterID, err := parseMmIdentification(iMeterID)
@@ -365,7 +359,7 @@ func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if formError {
-		s.legacyRenderTemplate(w, r, tmplName, form)
+		s.renderTemplate(w, r, ui.MmCreate(form))
 		return
 	}
 
