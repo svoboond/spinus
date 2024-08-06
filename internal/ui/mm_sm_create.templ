@@ -1,6 +1,7 @@
 package ui
 
 templ MmSmCreate(upper MmUpperTmpl, form MmSmForm) {
+	@MmUpper(upper)
 	<h1>New Sub Meter</h1>
 	<form method="post">
 		if form.GeneralErr != "" {

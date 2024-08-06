@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -24,6 +23,8 @@ type Upper struct { // TODO: delete
 	UserLoggedIn bool
 }
 
+const internalServerErrorMsg = "500 Internal Server Error"
+
 func (s *Server) HandleForbidden(w http.ResponseWriter, r *http.Request) {
 	const msg = "403 Forbidden"
 	w.WriteHeader(http.StatusForbidden)
@@ -42,9 +43,8 @@ func (s *Server) HandleNotAllowed(w http.ResponseWriter, r *http.Request) {
 	s.renderTemplate(w, r, ui.Error(msg))
 }
 
-func (s *Server) HandleInternalServerError(
-	w http.ResponseWriter, r *http.Request, err error) {
-	s.renderTemplate(w, r, ui.Error(err.Error()))
+func (s *Server) HandleInternalServerError(w http.ResponseWriter, r *http.Request) {
+	s.renderTemplate(w, r, ui.Error(internalServerErrorMsg))
 }
 
 func (s *Server) legacyRenderTemplate(
@@ -60,18 +60,18 @@ func (s *Server) legacyRenderTemplate(
 	upperData := Upper{UserLoggedIn: userLoggedIn}
 	if err := s.templates.Render(&buf, upperTmplName, upperData); err != nil {
 		slog.Error("error rendering template", "template", upperTmplName, "err", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, internalServerErrorMsg, http.StatusInternalServerError)
 		return
 	}
 	if err := s.templates.Render(&buf, name, data); err != nil {
 		slog.Error("error rendering template", "template", name, "err", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, internalServerErrorMsg, http.StatusInternalServerError)
 		return
 	}
 	_, err := buf.WriteTo(w)
 	if err != nil {
 		slog.Error("error writing to buffer", "template", name, "err", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, internalServerErrorMsg, http.StatusInternalServerError)
 		return
 	}
 }
@@ -82,7 +82,7 @@ func (s *Server) renderTemplate(
 	userID, ok := GetUserID(ctx)
 	if !ok {
 		slog.Error("error getting user ID", "userID", userID)
-		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	var buf bytes.Buffer
@@ -134,7 +134,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 			form.UsernameErr = "Username is already taken."
 			formError = true
 		} else if err != pgx.ErrNoRows {
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 	} else {
@@ -151,7 +151,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 			form.EmailErr = "Email is already assigned to another account."
 			formError = true
 		} else if err != pgx.ErrNoRows {
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 	} else {
@@ -183,7 +183,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	userID, err := uuid.NewV7()
 	if err != nil {
 		slog.Error("error getting UUIDv7", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	user, err := s.queries.CreateUser(
@@ -197,12 +197,12 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	if err := s.sessionManager.RenewToken(ctx); err != nil {
 		slog.Error("error renewing token", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.sessionManager.Put(ctx, "userID", user.ID.String())
@@ -263,13 +263,13 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 			s.renderTemplate(w, r, ui.LogIn(form))
 		} else {
 			slog.Error("error executing query", "err", err)
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 		}
 		return
 	}
 	if err := s.sessionManager.RenewToken(ctx); err != nil {
 		slog.Error("error renewing token", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.sessionManager.Put(ctx, "userID", user.ID.String())
@@ -290,7 +290,7 @@ func (s *Server) HandlePostLogOut(w http.ResponseWriter, r *http.Request) {
 	if err := s.sessionManager.Destroy(ctx); err != nil {
 		slog.Error("error destroying token", "err", err)
 		ctx = context.WithValue(ctx, userIDKey, emptyUserIDVal)
-		s.HandleInternalServerError(w, r.WithContext(ctx), err)
+		s.HandleInternalServerError(w, r.WithContext(ctx))
 		return
 	}
 	ctx = context.WithValue(ctx, userIDKey, emptyUserIDVal)
@@ -302,13 +302,13 @@ func (s *Server) HandleGetMmList(w http.ResponseWriter, r *http.Request) {
 	userID, ok := GetUserID(ctx)
 	if !ok {
 		slog.Error("error getting user ID", "userID", userID)
-		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	mms, err := s.queries.ListUserMms(r.Context(), userID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.renderTemplate(w, r, ui.MmList(mms))
@@ -370,13 +370,13 @@ func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
 	userID, ok := GetUserID(ctx)
 	if !ok {
 		slog.Error("error getting user ID", "userID", userID)
-		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	mmID, err := uuid.NewV7()
 	if err != nil {
 		slog.Error("error getting UUIDv7", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	_, err = s.queries.CreateMm(
@@ -392,7 +392,7 @@ func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 
@@ -409,7 +409,7 @@ func (s *Server) HandleGetMmOverview(w http.ResponseWriter, r *http.Request) {
 	mm, ok := GetMm(ctx)
 	if !ok {
 		slog.Error("error getting main meter", "mainMeter", mm)
-		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.renderTemplate(w, r, ui.MmOverview(ui.MmUpperTmpl{MmID: mm.ID}, mm))
@@ -420,7 +420,7 @@ func (s *Server) HandleGetMmSmCreate(w http.ResponseWriter, r *http.Request) {
 	mm, ok := GetMm(ctx)
 	if !ok {
 		slog.Error("error getting main meter", "mainMeter", mm)
-		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.renderTemplate(w, r, ui.MmSmCreate(ui.MmUpperTmpl{MmID: mm.ID}, ui.MmSmForm{}))
@@ -431,13 +431,13 @@ func (s *Server) HandlePostMmSmCreate(w http.ResponseWriter, r *http.Request) {
 	userID, ok := GetUserID(ctx)
 	if !ok {
 		slog.Error("error getting user ID", "userID", userID)
-		s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	mm, ok := GetMm(ctx)
 	if !ok {
 		slog.Error("error getting main meter", "mainMeter", mm)
-		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 
@@ -477,7 +477,7 @@ func (s *Server) HandlePostMmSmCreate(w http.ResponseWriter, r *http.Request) {
 	smID, err := uuid.NewV7()
 	if err != nil {
 		slog.Error("error getting UUIDv7", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	_, err = s.queries.CreateSm(
@@ -492,7 +492,7 @@ func (s *Server) HandlePostMmSmCreate(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 
@@ -509,14 +509,14 @@ func (s *Server) HandleGetMmSmList(w http.ResponseWriter, r *http.Request) {
 	mm, ok := GetMm(ctx)
 	if !ok {
 		slog.Error("error getting main meter", "mainMeter", mm)
-		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	mmID := mm.ID
 	sms, err := s.queries.ListSms(r.Context(), mmID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.renderTemplate(w, r, ui.MmSmList(ui.MmUpperTmpl{MmID: mmID}, sms))
@@ -527,7 +527,7 @@ func (s *Server) HandleGetSmOverview(w http.ResponseWriter, r *http.Request) {
 	sm, ok := GetSm(ctx)
 	if !ok {
 		slog.Error("error getting sub meter", "subMeter", sm)
-		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.renderTemplate(w, r, ui.SmOverview(ui.SmUpperTmpl{SmID: sm.ID}, sm))
@@ -538,109 +538,87 @@ func (s *Server) HandleGetSmRdgList(w http.ResponseWriter, r *http.Request) {
 	sm, ok := GetSm(ctx)
 	if !ok {
 		slog.Error("error getting sub meter", "subMeter", sm)
-		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	smID := sm.ID
 	smRdgs, err := s.queries.ListSmRdgs(ctx, smID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.renderTemplate(w, r, ui.SmRdgList(ui.SmUpperTmpl{SmID: sm.ID}, smRdgs))
 }
 
 func (s *Server) HandleGetSmRdgCreate(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "smRdgCreate"
-
-	ctx := r.Context()
-	sm, ok := GetSm(ctx)
+	sm, ok := GetSm(r.Context())
 	if !ok {
 		slog.Error("error getting sub meter", "subMeter", sm)
-		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
-	s.legacyRenderTemplate(
-		w, r,
-		tmplName,
-		SmRdgCreateTmpl{
-			SmRdgForm: SmRdgForm{},
-			Upper: SmUpperTmpl{
-				MmUpperTmpl: MmUpperTmpl{MmID: sm.MmID},
-				SmID:        sm.ID,
-			},
-		},
-	)
+	s.renderTemplate(w, r, ui.SmRdgCreate(ui.SmUpperTmpl{SmID: sm.ID}, ui.SmRdgForm{}))
 }
 
 func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "smRdgCreate"
-
 	ctx := r.Context()
 	sm, ok := GetSm(ctx)
 	if !ok {
 		slog.Error("error getting sub meter", "subMeter", sm)
-		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 
 	smID := sm.ID
-	tmplData := SmRdgCreateTmpl{
-		SmRdgForm: SmRdgForm{},
-		Upper: SmUpperTmpl{
-			MmUpperTmpl: MmUpperTmpl{MmID: sm.MmID},
-			SmID:        smID,
-		},
-	}
-	var formError bool
+	upper := ui.SmUpperTmpl{SmID: smID}
+	form := ui.SmRdgForm{}
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
-		tmplData.GeneralErr = "Bad request"
-		if err := s.templates.Render(w, tmplName, tmplData); err != nil {
-			slog.Error("error rendering template", "template", tmplName, "err", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		form.GeneralErr = "Bad request"
+		s.renderTemplate(w, r, ui.SmRdgCreate(upper, form))
 		return
 	}
 
+	var formError bool
+
 	iRdgVal := r.PostFormValue("rdg-val")
-	tmplData.RdgVal = iRdgVal
+	form.RdgVal = iRdgVal
 	rdgVal, err := parseRdgVal(iRdgVal)
 	if err != nil {
-		tmplData.RdgValErr = err.Error()
+		form.RdgValErr = err.Error()
 		formError = true
 	}
 
 	iRdgDate := r.PostFormValue("rdg-date")
-	tmplData.RdgDate = iRdgDate
+	form.RdgDate = iRdgDate
 	rdgTime, err := parseDate(iRdgDate)
 	rdgDate := pgtype.Date{Time: rdgTime.Time, Valid: true}
 	if err == nil {
 		_, err = s.queries.GetSmRdgForDate(
 			ctx, spinusdb.GetSmRdgForDateParams{FkSm: smID, RdgDate: rdgDate})
 		if err == nil {
-			tmplData.RdgDateErr = "Reading for the given date already exists."
+			form.RdgDateErr = "Reading for the given date already exists."
 			formError = true
 		} else if err != pgx.ErrNoRows {
-			s.HandleInternalServerError(w, r, err)
+			slog.Error("error executing query", "err", err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 	} else {
-		tmplData.RdgDateErr = err.Error()
+		form.RdgDateErr = err.Error()
 		formError = true
 	}
 
 	if formError {
-		s.legacyRenderTemplate(w, r, tmplName, tmplData)
+		s.renderTemplate(w, r, ui.SmRdgCreate(upper, form))
 		return
 	}
 
 	rdgID, err := uuid.NewV7()
 	if err != nil {
 		slog.Error("error getting UUIDv7", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	_, err = s.queries.CreateSmRdg(
@@ -654,7 +632,7 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 
@@ -673,14 +651,14 @@ func (s *Server) HandleGetSmBillList(w http.ResponseWriter, r *http.Request) {
 	sm, ok := GetSm(ctx)
 	if !ok {
 		slog.Error("error getting sub meter", "subMeter", sm)
-		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	smID := sm.ID
 	smBills, err := s.queries.ListSmBills(r.Context(), smID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.legacyRenderTemplate(
@@ -703,14 +681,14 @@ func (s *Server) HandleGetMmBillList(w http.ResponseWriter, r *http.Request) {
 	mm, ok := GetMm(ctx)
 	if !ok {
 		slog.Error("error getting main meter", "mainMeter", mm)
-		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	mmID := mm.ID
 	bills, err := s.queries.ListMmBills(ctx, mmID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.legacyRenderTemplate(
@@ -729,9 +707,7 @@ func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request)
 	mmBill, ok := GetMmBill(ctx)
 	if !ok {
 		slog.Error("error getting main meter billing", "mainMeterBill", mmBill)
-		s.HandleInternalServerError(
-			w, r, errors.New("error getting main meter billing"),
-		)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.legacyRenderTemplate(
@@ -753,16 +729,14 @@ func (s *Server) HandleGetMmBillSmList(w http.ResponseWriter, r *http.Request) {
 	mmBill, ok := GetMmBill(ctx)
 	if !ok {
 		slog.Error("error getting main meter billing", "mainMeterBill", mmBill)
-		s.HandleInternalServerError(
-			w, r, errors.New("error getting main meter billing"),
-		)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	mmBillID := mmBill.ID
 	mmBillSms, err := s.queries.ListMmBillSms(ctx, mmBillID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.legacyRenderTemplate(
@@ -784,16 +758,14 @@ func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Reques
 	mmBill, ok := GetMmBill(ctx)
 	if !ok {
 		slog.Error("error getting main meter billing", "mainMeterBill", mmBill)
-		s.HandleInternalServerError(
-			w, r, errors.New("error getting main meter billing"),
-		)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	mmBillID := mmBill.ID
 	mmBillPeriods, err := s.queries.ListMmBillPeriods(ctx, mmBillID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.legacyRenderTemplate(
@@ -815,7 +787,7 @@ func (s *Server) HandleGetMmBillCreate(w http.ResponseWriter, r *http.Request) {
 	mm, ok := GetMm(ctx)
 	if !ok {
 		slog.Error("error getting main meter", "mainMeter", mm)
-		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	s.legacyRenderTemplate(
@@ -835,7 +807,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	mm, ok := GetMm(ctx)
 	if !ok {
 		slog.Error("error getting main meter", "mainMeter", mm)
-		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
+		s.HandleInternalServerError(w, r)
 		return
 	}
 
@@ -1051,7 +1023,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	tx, err := s.postgresClient.Begin(ctx)
 	if err != nil {
 		slog.Error("error beginning transaction", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -1065,7 +1037,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		})
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	rdgLen := len(smRdgs)
@@ -1366,7 +1338,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	smList, err := qtx.ListSms(ctx, mmID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	sms := make(map[uuid.UUID]spinusdb.ListSmsRow)
@@ -1625,14 +1597,14 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	mmBillID, err := uuid.NewV7()
 	if err != nil {
 		slog.Error("error getting UUIDv7", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 	mmBill.ID = mmBillID
 	_, err = qtx.CreateMmBill(ctx, mmBill)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 
@@ -1642,7 +1614,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		smBillID, err := uuid.NewV7()
 		if err != nil {
 			slog.Error("error getting UUIDv7", "err", err)
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		smBill.ID = smBillID
@@ -1650,7 +1622,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		_, err = qtx.CreateSmBill(ctx, *smBill)
 		if err != nil {
 			slog.Error("error executing query", "err", err)
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		smBillIDs[smID] = smBillID
@@ -1660,7 +1632,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		mmBillPrdID, err := uuid.NewV7()
 		if err != nil {
 			slog.Error("error getting UUIDv7", "err", err)
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		mmBillPrd.ID = mmBillPrdID
@@ -1668,7 +1640,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		createdMmBillPeriod, err := qtx.CreateMmBillPeriod(ctx, *mmBillPrd)
 		if err != nil {
 			slog.Error("error executing query", "err", err)
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		createdMmBillPeriodID := createdMmBillPeriod.ID
@@ -1677,7 +1649,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 			smBillPrdID, err := uuid.NewV7()
 			if err != nil {
 				slog.Error("error getting UUIDv7", "err", err)
-				s.HandleInternalServerError(w, r, err)
+				s.HandleInternalServerError(w, r)
 				return
 			}
 			smBillPrd.ID = smBillPrdID
@@ -1686,7 +1658,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 			_, err = qtx.CreateSmBillPeriod(ctx, *smBillPrd)
 			if err != nil {
 				slog.Error("error executing query", "err", err)
-				s.HandleInternalServerError(w, r, err)
+				s.HandleInternalServerError(w, r)
 				return
 			}
 		}
@@ -1695,7 +1667,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		err := qtx.UpdateSmFinBalance(ctx, smFinBalance)
 		if err != nil {
 			slog.Error("error executing query", "err", err)
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 
@@ -1704,7 +1676,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	err = tx.Commit(ctx)
 	if err != nil {
 		slog.Error("error committing transaction", "err", err)
-		s.HandleInternalServerError(w, r, err)
+		s.HandleInternalServerError(w, r)
 		return
 	}
 

@@ -8,7 +8,7 @@ package ui
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-func MmSmCreate(upper MmUpperTmpl, form MmSmForm) templ.Component {
+func SmRdgCreate(upper SmUpperTmpl, form SmRdgForm) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
@@ -26,11 +26,11 @@ func MmSmCreate(upper MmUpperTmpl, form MmSmForm) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = MmUpper(upper).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = SmUpper(upper).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<h1>New Sub Meter</h1><form method=\"post\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<h1>New Sub Meter Reading</h1><form method=\"post\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -42,7 +42,7 @@ func MmSmCreate(upper MmUpperTmpl, form MmSmForm) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(form.GeneralErr)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/mm_sm_create.templ`, Line: 8, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/sm_rdg_create.templ`, Line: 8, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -53,14 +53,14 @@ func MmSmCreate(upper MmUpperTmpl, form MmSmForm) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<label for=\"meter-identification\">Meter Identification</label> <input type=\"text\" name=\"meter-identification\" id=\"meter-identification\" maxlength=\"64\" value=\"")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<label for=\"rdg-date\">Date (Required)</label> <input type=\"date\" name=\"rdg-date\" id=\"rdg-date\" required value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(form.MeterIdentification)
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(form.RdgDate)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/mm_sm_create.templ`, Line: 16, Col: 35}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/sm_rdg_create.templ`, Line: 11, Col: 80}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -70,15 +70,15 @@ func MmSmCreate(upper MmUpperTmpl, form MmSmForm) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if form.MeterIdentification != "" {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<label class=\"error\" for=\"username\">")
+		if form.RdgDateErr != "" {
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<label class=\"error\" for=\"rdg-date\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(form.MeterIdentification)
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(form.RdgDateErr)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/mm_sm_create.templ`, Line: 19, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/sm_rdg_create.templ`, Line: 13, Col: 56}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -89,14 +89,14 @@ func MmSmCreate(upper MmUpperTmpl, form MmSmForm) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<label for=\"fin-balance\">Financial Balance</label> <input type=\"number\" step=\"0.001\" name=\"fin-balance\" id=\"fin-balance\" required value=\"")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<label for=\"rdg-val\">Value (Required)</label> <input type=\"number\" step=\"0.001\" name=\"rdg-val\" id=\"rdg-val\" min=\"0\" required value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
-		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(form.FinBalance)
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(form.RdgVal)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/mm_sm_create.templ`, Line: 28, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/sm_rdg_create.templ`, Line: 16, Col: 100}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -106,15 +106,15 @@ func MmSmCreate(upper MmUpperTmpl, form MmSmForm) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if form.FinBalanceErr != "" {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<label class=\"error\" for=\"fin-balance\">")
+		if form.RdgValErr != "" {
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<label class=\"error\" for=\"rdg-val\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 string
-			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(form.FinBalanceErr)
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(form.RdgValErr)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/mm_sm_create.templ`, Line: 31, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/sm_rdg_create.templ`, Line: 18, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -125,7 +125,7 @@ func MmSmCreate(upper MmUpperTmpl, form MmSmForm) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<input type=\"submit\" value=\"Create account\"></form>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<input type=\"submit\" value=\"Create\"></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

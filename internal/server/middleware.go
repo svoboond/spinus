@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -52,7 +51,7 @@ func (s *Server) WithRequiredLogin(h http.Handler) http.Handler {
 		userID, ok := GetUserID(r.Context())
 		if !ok {
 			slog.Error("error getting user ID", "userID", userID)
-			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		if userID == emptyUserIDVal {
@@ -86,7 +85,7 @@ func (s *Server) WithMm(h http.Handler) http.Handler {
 		userID, ok := GetUserID(ctx)
 		if !ok {
 			slog.Error("error getting user ID", "userID", userID)
-			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		mm, err := s.queries.GetMm(ctx, mmID)
@@ -96,7 +95,7 @@ func (s *Server) WithMm(h http.Handler) http.Handler {
 				return
 			}
 			slog.Error("error executing query", "err", err)
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		if userID != mm.FkUser {
@@ -128,7 +127,7 @@ func (s *Server) WithSm(h http.Handler) http.Handler {
 		userID, ok := GetUserID(ctx)
 		if !ok {
 			slog.Error("error getting user ID", "userID", userID)
-			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		sm, err := s.queries.GetSm(ctx, smID)
@@ -138,7 +137,7 @@ func (s *Server) WithSm(h http.Handler) http.Handler {
 				return
 			}
 			slog.Error("error executing query", "err", err)
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		if userID != sm.SubUserID || userID != sm.MainUserID {
@@ -170,7 +169,7 @@ func (s *Server) WithMmBill(h http.Handler) http.Handler {
 		userID, ok := GetUserID(ctx)
 		if !ok {
 			slog.Error("error getting user ID", "userID", userID)
-			s.HandleInternalServerError(w, r, errors.New("error getting user ID"))
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		mmBill, err := s.queries.GetMmBill(ctx, mmBillID)
@@ -180,7 +179,7 @@ func (s *Server) WithMmBill(h http.Handler) http.Handler {
 				return
 			}
 			slog.Error("error executing query", "err", err)
-			s.HandleInternalServerError(w, r, err)
+			s.HandleInternalServerError(w, r)
 			return
 		}
 		if userID != mmBill.FkUser {

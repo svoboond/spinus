@@ -37,3 +37,11 @@ type MmSmForm struct {
 	FinBalance             string
 	FinBalanceErr          string
 }
+
+type SmRdgForm struct {
+	GeneralErr string
+	RdgVal     string
+	RdgValErr  string
+	RdgDate    string
+	RdgDateErr string
+}
