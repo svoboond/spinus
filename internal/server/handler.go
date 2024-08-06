@@ -504,9 +504,7 @@ func (s *Server) HandlePostMmSmCreate(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (s *Server) HandleGetSmList(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "smList"
-
+func (s *Server) HandleGetMmSmList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	mm, ok := GetMm(ctx)
 	if !ok {
@@ -514,7 +512,6 @@ func (s *Server) HandleGetSmList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
-
 	mmID := mm.ID
 	sms, err := s.queries.ListSms(r.Context(), mmID)
 	if err != nil {
@@ -522,20 +519,10 @@ func (s *Server) HandleGetSmList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-
-	s.legacyRenderTemplate(
-		w, r,
-		tmplName,
-		SmListTmpl{
-			Sms:   sms,
-			Upper: MmUpperTmpl{MmID: mmID},
-		},
-	)
+	s.renderTemplate(w, r, ui.MmSmList(ui.MmUpperTmpl{MmID: mmID}, sms))
 }
 
 func (s *Server) HandleGetSmOverview(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "smOverview"
-
 	ctx := r.Context()
 	sm, ok := GetSm(ctx)
 	if !ok {
@@ -543,23 +530,10 @@ func (s *Server) HandleGetSmOverview(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting sub meter"))
 		return
 	}
-
-	s.legacyRenderTemplate(
-		w, r,
-		tmplName,
-		SmOverviewTmpl{
-			GetSmRow: sm,
-			Upper: SmUpperTmpl{
-				MmUpperTmpl: MmUpperTmpl{MmID: sm.MmID},
-				SmID:        sm.ID,
-			},
-		},
-	)
+	s.renderTemplate(w, r, ui.SmOverview(ui.SmUpperTmpl{SmID: sm.ID}, sm))
 }
 
 func (s *Server) HandleGetSmRdgList(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "smRdgList"
-
 	ctx := r.Context()
 	sm, ok := GetSm(ctx)
 	if !ok {
@@ -568,23 +542,13 @@ func (s *Server) HandleGetSmRdgList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	smID := sm.ID
-	smRdgs, err := s.queries.ListSmRdgs(r.Context(), smID)
+	smRdgs, err := s.queries.ListSmRdgs(ctx, smID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r, err)
 		return
 	}
-	s.legacyRenderTemplate(
-		w, r,
-		tmplName,
-		SmRdgListTmpl{
-			SmRdgs: smRdgs,
-			Upper: SmUpperTmpl{
-				MmUpperTmpl: MmUpperTmpl{MmID: sm.MmID},
-				SmID:        smID,
-			},
-		},
-	)
+	s.renderTemplate(w, r, ui.SmRdgList(ui.SmUpperTmpl{SmID: sm.ID}, smRdgs))
 }
 
 func (s *Server) HandleGetSmRdgCreate(w http.ResponseWriter, r *http.Request) {

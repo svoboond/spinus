@@ -1,0 +1,11 @@
+package ui
+
+import "fmt"
+
+templ SmUpper(upper SmUpperTmpl) {
+	<ul>
+		<li><a href={ templ.URL(fmt.Sprintf("/sub-meter/%s/overview", upper.SmID.String())) }>Overview</a></li>
+		<li><a href={ templ.URL(fmt.Sprintf("/sub-meter/%s/reading/list", upper.SmID.String())) }>Readings</a></li>
+		<li><a href={ templ.URL(fmt.Sprintf("/sub-meter/%s/billing/list", upper.SmID.String())) }>Billings</a></li>
+	</ul>
+}

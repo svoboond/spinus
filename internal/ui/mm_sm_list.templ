@@ -1,0 +1,28 @@
+package ui
+
+import (
+	"fmt"
+	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+	"strconv"
+)
+
+templ MmSmList(upper MmUpperTmpl, sms []spinusdb.ListSmsRow) {
+	@MmUpper(upper)
+	<h1>Sub Meters</h1>
+	<li><a href={ templ.URL(fmt.Sprintf("/main-meter/%s/sub-meter/new", upper.MmID.String())) }>New Sub Meter</a></li>
+	<table>
+		<tr>
+			<th>Meter Identification</th>
+			<th>Financial Balance</th>
+			<th>User Email</th>
+		</tr>
+		for _, sm := range sms {
+			<tr>
+				<td>{ sm.MeterID.String }</td>
+				<td>{ strconv.FormatFloat(sm.FinBalance, 'f', -1, 64) }</td>
+				<td>{ sm.Email }</td>
+				<td><a href={ templ.URL(fmt.Sprintf("/sub-meter/%s/overview", sm.ID.String())) }>Detail</a></td>
+			</tr>
+		}
+	</table>
+}

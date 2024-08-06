@@ -2,7 +2,7 @@
 SELECT
 	sm.id,
 	sm.fk_mm AS mm_id,
-	sm.meter_id AS sm_id,
+	sm.meter_id,
 	sm.fin_balance,
 	sm.fk_user AS sub_user_id,
 	sub_user.email AS sub_user_email,

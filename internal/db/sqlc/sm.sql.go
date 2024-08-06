@@ -53,7 +53,7 @@ const getSm = `-- name: GetSm :one
 SELECT
 	sm.id,
 	sm.fk_mm AS mm_id,
-	sm.meter_id AS sm_id,
+	sm.meter_id,
 	sm.fin_balance,
 	sm.fk_user AS sub_user_id,
 	sub_user.email AS sub_user_email,
@@ -74,7 +74,7 @@ LIMIT 1
 type GetSmRow struct {
 	ID            uuid.UUID
 	MmID          uuid.UUID
-	SmID          pgtype.Text
+	MeterID       pgtype.Text
 	FinBalance    float64
 	SubUserID     uuid.UUID
 	SubUserEmail  string
@@ -89,7 +89,7 @@ func (q *Queries) GetSm(ctx context.Context, id uuid.UUID) (GetSmRow, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.MmID,
-		&i.SmID,
+		&i.MeterID,
 		&i.FinBalance,
 		&i.SubUserID,
 		&i.SubUserEmail,

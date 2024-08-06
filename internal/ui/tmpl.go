@@ -9,3 +9,7 @@ type Upper struct {
 type MmUpperTmpl struct {
 	MmID uuid.UUID
 }
+
+type SmUpperTmpl struct {
+	SmID uuid.UUID
+}

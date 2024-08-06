@@ -1,0 +1,25 @@
+package ui
+
+import (
+	"fmt"
+	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+	"strconv"
+)
+
+templ SmRdgList(upper SmUpperTmpl, smRdgs []spinusdb.SmRdg) {
+	@SmUpper(upper)
+	<h1>Sub Meter Readings</h1>
+	<li><a href={ templ.URL(fmt.Sprintf("/sub-meter/%s/reading/new", upper.SmID.String())) }>New Reading</a></li>
+	<table>
+		<tr>
+			<th>Date</th>
+			<th>Value</th>
+		</tr>
+		for _, smRdg := range smRdgs {
+			<tr>
+				<td><input type="date" disabled value={ smRdg.RdgDate.Time.Format("2006-01-02") }></td>
+				<td>{ strconv.FormatFloat(smRdg.RdgVal, 'f', -1, 64) }</td>
+			</tr>
+		}
+	</table>
+}

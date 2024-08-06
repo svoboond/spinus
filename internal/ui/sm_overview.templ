@@ -1,0 +1,27 @@
+package ui
+
+import (
+	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+	"strconv"
+)
+
+templ SmOverview(upper SmUpperTmpl, sm spinusdb.GetSmRow) {
+	@SmUpper(upper)
+	<h1>Sub Meter Overview</h1>
+	<table>
+		<tr>
+			<th>Meter Identification</th>
+			<th>Financial Balance</th>
+			<th>User Email</th>
+			<th>Address</th>
+			<th>Main Meter User Email</th>
+		</tr>
+		<tr>
+			<td>{ sm.MeterID.String }</td>
+			<td>{ strconv.FormatFloat(sm.FinBalance, 'f', -1, 64) }</td>
+			<td>{ sm.SubUserEmail }</td>
+			<td>{ sm.Address }</td>
+			<td>{ sm.MainUserEmail }</td>
+		</tr>
+	</table>
+}
