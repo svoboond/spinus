@@ -1,0 +1,22 @@
+package ui
+
+import spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+
+templ MmOverview(upper MmUpperTmpl, mm spinusdb.GetMmRow) {
+	<h1>Main Meter Overview</h1>
+	@MmUpper(upper)
+	<table>
+		<tr>
+			<th>Meter Identification</th>
+			<th>Energy</th>
+			<th>Address</th>
+			<th>Currency Code</th>
+		</tr>
+		<tr>
+			<td>{ mm.MeterID }</td>
+			<td>{ string(mm.Energy) }</td>
+			<td>{ mm.Address }</td>
+			<td>{ mm.CurrencyCode }</td>
+		</tr>
+	</table>
+}

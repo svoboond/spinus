@@ -1,0 +1,34 @@
+package ui
+
+templ MmSmCreate(upper MmUpperTmpl, form MmSmForm) {
+	<h1>New Sub Meter</h1>
+	<form method="post">
+		if form.GeneralErr != "" {
+			<span class="error">{ form.GeneralErr }</span>
+		}
+		<label for="meter-identification">Meter Identification</label>
+		<input
+			type="text"
+			name="meter-identification"
+			id="meter-identification"
+			maxlength="64"
+			value={ form.MeterIdentification }
+		/>
+		if form.MeterIdentification != "" {
+			<label class="error" for="username">{ form.MeterIdentification }</label>
+		}
+		<label for="fin-balance">Financial Balance</label>
+		<input
+			type="number"
+			step="0.001"
+			name="fin-balance"
+			id="fin-balance"
+			required
+			value={ form.FinBalance }
+		/>
+		if form.FinBalanceErr != "" {
+			<label class="error" for="fin-balance">{ form.FinBalanceErr }</label>
+		}
+		<input type="submit" value="Create account"/>
+	</form>
+}

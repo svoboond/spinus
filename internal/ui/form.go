@@ -29,3 +29,11 @@ type MmForm struct {
 	CurrencyCode           string
 	CurrencyCodeErr        string
 }
+
+type MmSmForm struct {
+	GeneralErr             string
+	MeterIdentification    string
+	MeterIdentificationErr string
+	FinBalance             string
+	FinBalanceErr          string
+}

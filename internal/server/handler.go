@@ -124,6 +124,7 @@ func (s *Server) HandlePostSignUp(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var formError bool
+
 	iUsername := r.PostFormValue("username")
 	form.Username = iUsername
 	username, err := parseUsername(iUsername)
@@ -231,6 +232,7 @@ func (s *Server) HandlePostLogIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var formError bool
+
 	iUsername := r.PostFormValue("username")
 	form.Username = iUsername
 	username, err := parseUsername(iUsername)
@@ -326,6 +328,7 @@ func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var formError bool
+
 	iMeterID := r.PostFormValue("meter-identification")
 	form.MeterIdentification = iMeterID
 	meterID, err := parseMmIdentification(iMeterID)
@@ -402,8 +405,6 @@ func (s *Server) HandlePostMmCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleGetMmOverview(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmOverview"
-
 	ctx := r.Context()
 	mm, ok := GetMm(ctx)
 	if !ok {
@@ -411,14 +412,10 @@ func (s *Server) HandleGetMmOverview(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
-	s.legacyRenderTemplate(
-		w, r, tmplName, MmOverviewTmpl{GetMmRow: mm, Upper: MmUpperTmpl{MmID: mm.ID}},
-	)
+	s.renderTemplate(w, r, ui.MmOverview(ui.MmUpperTmpl{MmID: mm.ID}, mm))
 }
 
-func (s *Server) HandleGetSmCreate(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "smCreate"
-
+func (s *Server) HandleGetMmSmCreate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	mm, ok := GetMm(ctx)
 	if !ok {
@@ -426,14 +423,10 @@ func (s *Server) HandleGetSmCreate(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r, errors.New("error getting main meter"))
 		return
 	}
-	s.legacyRenderTemplate(
-		w, r, tmplName, SmCreateTmpl{SmForm: SmForm{}, Upper: MmUpperTmpl{MmID: mm.ID}},
-	)
+	s.renderTemplate(w, r, ui.MmSmCreate(ui.MmUpperTmpl{MmID: mm.ID}, ui.MmSmForm{}))
 }
 
-func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "smCreate"
-
+func (s *Server) HandlePostMmSmCreate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, ok := GetUserID(ctx)
 	if !ok {
@@ -449,37 +442,35 @@ func (s *Server) HandlePostSmCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mmID := mm.ID
-	tmplData := SmCreateTmpl{SmForm: SmForm{}, Upper: MmUpperTmpl{MmID: mmID}}
-	var formError bool
+	upper := ui.MmUpperTmpl{MmID: mmID}
+	form := ui.MmSmForm{}
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
-		tmplData.GeneralErr = "Bad request"
-		if err := s.templates.Render(w, tmplName, tmplData); err != nil {
-			slog.Error("error rendering template", "template", tmplName, "err", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		form.GeneralErr = "Bad request"
+		s.renderTemplate(w, r, ui.MmSmCreate(upper, form))
 		return
 	}
 
+	var formError bool
+
 	iMeterIdentification := r.PostFormValue("meter-identification")
-	tmplData.MeterIdentification = iMeterIdentification
+	form.MeterIdentification = iMeterIdentification
 	meterIdentification, err := parseSmIdentification(iMeterIdentification)
 	if err != nil {
-		tmplData.MeterIdentificationErr = err.Error()
+		form.MeterIdentificationErr = err.Error()
 		formError = true
 	}
 
 	IFinBalance := r.PostFormValue("fin-balance")
-	tmplData.FinBalance = IFinBalance
+	form.FinBalance = IFinBalance
 	finBalance, err := parseFinBalance(IFinBalance)
 	if err != nil {
-		tmplData.FinBalanceErr = err.Error()
+		form.FinBalanceErr = err.Error()
 		formError = true
 	}
 
 	if formError {
-		s.legacyRenderTemplate(w, r, tmplName, tmplData)
+		s.renderTemplate(w, r, ui.MmSmCreate(upper, form))
 		return
 	}
 

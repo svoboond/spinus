@@ -138,11 +138,11 @@ func New(config *conf.Conf) (*Server, error) {
 			)
 			mmDetailRouter.Get(
 				"/main-meter/{uuid}/sub-meter/new",
-				app.HandleGetSmCreate,
+				app.HandleGetMmSmCreate,
 			)
 			mmDetailRouter.Post(
 				"/main-meter/{uuid}/sub-meter/new",
-				app.HandlePostSmCreate,
+				app.HandlePostMmSmCreate,
 			)
 			mmDetailRouter.Get(
 				"/main-meter/{uuid}/billing/list",

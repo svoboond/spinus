@@ -1,10 +1,13 @@
 package ui
 
-import spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+import (
+	"fmt"
+	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+)
 
 templ MmList(mms []spinusdb.Mm) {
 	<h1>My Main Meters</h1>
-        <li><a href="/main-meter/new">New Main Meter</a></li>
+	<li><a href="/main-meter/new">New Main Meter</a></li>
 	<table>
 		<tr>
 			<th>Meter Identification</th>
@@ -13,13 +16,13 @@ templ MmList(mms []spinusdb.Mm) {
 			<th>Currency Code</th>
 		</tr>
 		for _, mm := range mms {
-		<tr>
-			<td>{ mm.MeterID }</td>
-			<td>{ string(mm.Energy) }</td>
-			<td>{ mm.Address }</td>
-			<td>{ mm.CurrencyCode }</td>
-			<td><a href="/main-meter/{ mm.ID.String }/overview">Detail</a></td>
-		</tr>
+			<tr>
+				<td>{ mm.MeterID }</td>
+				<td>{ string(mm.Energy) }</td>
+				<td>{ mm.Address }</td>
+				<td>{ mm.CurrencyCode }</td>
+				<td><a href={ templ.URL(fmt.Sprintf("/main-meter/%s/overview", mm.ID.String())) }>Detail</a></td>
+			</tr>
 		}
 	</table>
 }
