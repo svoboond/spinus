@@ -17,7 +17,7 @@ templ SmOverview(upper SmUpperTmpl, sm spinusdb.GetSmRow) {
 			<th>Main Meter User Email</th>
 		</tr>
 		<tr>
-			<td>{ sm.MeterID.String }</td>
+			<td>{ sm.MeterID }</td>
 			<td>{ strconv.FormatFloat(sm.FinBalance, 'f', -1, 64) }</td>
 			<td>{ sm.SubUserEmail }</td>
 			<td>{ sm.Address }</td>

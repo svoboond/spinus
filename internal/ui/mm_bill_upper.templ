@@ -1,0 +1,11 @@
+package ui
+
+import "fmt"
+
+templ MmBillUpper(upper MmBillUpperTmpl) {
+	<ul>
+		<li><a href={ templ.URL(fmt.Sprintf("/main-meter-billing/%s/overview", upper.MmBillID.String())) }>Overview</a></li>
+		<li><a href={ templ.URL(fmt.Sprintf("/main-meter-billing/%s/sub-meter/list", upper.MmBillID.String())) }>Sub Meters</a></li>
+		<li><a href={ templ.URL(fmt.Sprintf("/main-meter-billing/%s/period/list", upper.MmBillID.String())) }>Periods</a></li>
+	</ul>
+}

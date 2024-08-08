@@ -13,3 +13,7 @@ type MmUpperTmpl struct {
 type SmUpperTmpl struct {
 	SmID uuid.UUID
 }
+
+type MmBillUpperTmpl struct {
+	MmBillID uuid.UUID
+}

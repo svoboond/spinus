@@ -1,0 +1,39 @@
+package ui
+
+import (
+	"fmt"
+	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+	"strconv"
+)
+
+templ SmBillList(upper SmUpperTmpl, smBills []spinusdb.SmBill) {
+	@SmUpper(upper)
+	<h1>Sub Meter Billings</h1>
+	<table>
+		<tr>
+			<th>Status</th>
+			<th>Energy Consumption</th>
+			<th>Consumed Energy Price</th>
+			<th>Service Price</th>
+			<th>Advance Price</th>
+			<th>From Financial Balance</th>
+			<th>To Pay</th>
+		</tr>
+		for _, smBill := range smBills {
+			<tr>
+				<td>{ string(smBill.Status) }</td>
+				<td>{ strconv.FormatFloat(smBill.EnergyConsum, 'f', -1, 64) }</td>
+				<td>{ strconv.FormatFloat(smBill.ConsumEnergyPrice, 'f', -1, 64) }</td>
+				if smBill.ServicePrice.Valid {
+					<td>{ strconv.FormatFloat(smBill.ServicePrice.Float64, 'f', -1, 64) }</td>
+				} else {
+					<td></td>
+				}
+				<td>{ strconv.FormatFloat(smBill.AdvancePrice, 'f', -1, 64) }</td>
+				<td>{ strconv.FormatFloat(smBill.FromFinBalance, 'f', -1, 64) }</td>
+				<td>{ strconv.FormatFloat(smBill.ToPay, 'f', -1, 64) }</td>
+				<td><a href={ templ.URL(fmt.Sprintf("/sub-meter-billing/%s/overview", smBill.ID.String())) }>Detail</a></td>
+			</tr>
+		}
+	</table>
+}

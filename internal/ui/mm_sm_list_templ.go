@@ -55,9 +55,9 @@ func MmSmList(upper MmUpperTmpl, sms []spinusdb.ListSmsRow) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(sm.MeterID.String)
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(sm.MeterID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/mm_sm_list.templ`, Line: 21, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/mm_sm_list.templ`, Line: 21, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {

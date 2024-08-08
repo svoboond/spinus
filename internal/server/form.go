@@ -87,7 +87,7 @@ type MmBillPeriodForm struct {
 type SmBillForm struct {
 	ID                uuid.UUID
 	CreatedTs         time.Time
-	MeterID           pgtype.Text
+	MeterID           string
 	Email             string
 	EnergyConsum      float64
 	ConsumEnergyPrice float64

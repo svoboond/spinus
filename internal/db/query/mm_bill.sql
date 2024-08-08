@@ -24,13 +24,7 @@ ORDER BY mm_bill_period.begin_date;
 SELECT
 	sm.meter_id,
 	spinus_user.email,
-	sm_bill.energy_consum,
-	sm_bill.consum_energy_price,
-	sm_bill.service_price,
-	sm_bill.advance_price,
-	sm_bill.from_fin_balance,
-	sm_bill.to_pay,
-	sm_bill.status
+	sm_bill.*
 FROM mm_bill
 JOIN sm_bill
 	ON mm_bill.id = sm_bill.fk_mm_bill

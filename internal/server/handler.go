@@ -485,7 +485,7 @@ func (s *Server) HandlePostMmSmCreate(w http.ResponseWriter, r *http.Request) {
 		spinusdb.CreateSmParams{
 			ID:         smID,
 			FkMm:       mmID,
-			MeterID:    pgtype.Text{String: string(meterIdentification), Valid: true},
+			MeterID:    string(meterIdentification),
 			FinBalance: float64(finBalance),
 			FkUser:     userID,
 		},
@@ -644,39 +644,7 @@ func (s *Server) HandlePostSmRdgCreate(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (s *Server) HandleGetSmBillList(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "smBillList"
-
-	ctx := r.Context()
-	sm, ok := GetSm(ctx)
-	if !ok {
-		slog.Error("error getting sub meter", "subMeter", sm)
-		s.HandleInternalServerError(w, r)
-		return
-	}
-	smID := sm.ID
-	smBills, err := s.queries.ListSmBills(r.Context(), smID)
-	if err != nil {
-		slog.Error("error executing query", "err", err)
-		s.HandleInternalServerError(w, r)
-		return
-	}
-	s.legacyRenderTemplate(
-		w, r,
-		tmplName,
-		SmBillListTmpl{
-			SmBills: smBills,
-			Upper: SmUpperTmpl{
-				MmUpperTmpl: MmUpperTmpl{MmID: sm.MmID},
-				SmID:        smID,
-			},
-		},
-	)
-}
-
 func (s *Server) HandleGetMmBillList(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmBillList"
-
 	ctx := r.Context()
 	mm, ok := GetMm(ctx)
 	if !ok {
@@ -685,46 +653,28 @@ func (s *Server) HandleGetMmBillList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mmID := mm.ID
-	bills, err := s.queries.ListMmBills(ctx, mmID)
+	mmBills, err := s.queries.ListMmBills(ctx, mmID)
 	if err != nil {
 		slog.Error("error executing query", "err", err)
 		s.HandleInternalServerError(w, r)
 		return
 	}
-	s.legacyRenderTemplate(
-		w, r, tmplName,
-		MmBillListTmpl{
-			MmBills: bills,
-			Upper:   MmUpperTmpl{MmID: mmID},
-		},
-	)
+	s.renderTemplate(w, r, ui.MmBillList(ui.MmUpperTmpl{MmID: mmID}, mmBills))
 }
 
 func (s *Server) HandleGetMmBillOverview(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmBillOverview"
-
-	ctx := r.Context()
-	mmBill, ok := GetMmBill(ctx)
+	mmBill, ok := GetMmBill(r.Context())
 	if !ok {
 		slog.Error("error getting main meter billing", "mainMeterBill", mmBill)
 		s.HandleInternalServerError(w, r)
 		return
 	}
-	s.legacyRenderTemplate(
-		w, r, tmplName,
-		MmBillOverviewTmpl{
-			GetMmBillRow: mmBill,
-			Upper: MmBillUpperTmpl{
-				MmUpperTmpl: MmUpperTmpl{MmID: mmBill.FkMm},
-				MmBillID:    mmBill.ID,
-			},
-		},
+	s.renderTemplate(
+		w, r, ui.MmBillOverview(ui.MmBillUpperTmpl{MmBillID: mmBill.ID}, mmBill),
 	)
 }
 
 func (s *Server) HandleGetMmBillSmList(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmBillSmList"
-
 	ctx := r.Context()
 	mmBill, ok := GetMmBill(ctx)
 	if !ok {
@@ -739,15 +689,8 @@ func (s *Server) HandleGetMmBillSmList(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r)
 		return
 	}
-	s.legacyRenderTemplate(
-		w, r, tmplName,
-		MmBillSmListTmpl{
-			MmBillSms: mmBillSms,
-			Upper: MmBillUpperTmpl{
-				MmUpperTmpl: MmUpperTmpl{MmID: mmBill.FkMm},
-				MmBillID:    mmBillID,
-			},
-		},
+	s.renderTemplate(
+		w, r, ui.MmBillSmList(ui.MmBillUpperTmpl{MmBillID: mmBill.ID}, mmBillSms),
 	)
 }
 
@@ -1686,4 +1629,22 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		fmt.Sprintf("/main-meter-billing/%s/overview", mmBillID.String()),
 		http.StatusSeeOther,
 	)
+}
+
+func (s *Server) HandleGetSmBillList(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sm, ok := GetSm(ctx)
+	if !ok {
+		slog.Error("error getting sub meter", "subMeter", sm)
+		s.HandleInternalServerError(w, r)
+		return
+	}
+	smID := sm.ID
+	smBills, err := s.queries.ListSmBills(ctx, smID)
+	if err != nil {
+		slog.Error("error executing query", "err", err)
+		s.HandleInternalServerError(w, r)
+		return
+	}
+	s.renderTemplate(w, r, ui.SmBillList(ui.SmUpperTmpl{SmID: smID}, smBills))
 }

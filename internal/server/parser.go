@@ -124,7 +124,7 @@ func parseSmIdentification(s string) (SmID, error) {
 	vLen := len(s)
 	switch {
 	case v == "":
-		return v, nil
+		return v, errors.New("Enter meter identification.")
 	case vLen > 64:
 		return v, errors.New(
 			"Enter meter identification with maximum of 64 characters.",

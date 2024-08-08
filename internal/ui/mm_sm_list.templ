@@ -18,7 +18,7 @@ templ MmSmList(upper MmUpperTmpl, sms []spinusdb.ListSmsRow) {
 		</tr>
 		for _, sm := range sms {
 			<tr>
-				<td>{ sm.MeterID.String }</td>
+				<td>{ sm.MeterID }</td>
 				<td>{ strconv.FormatFloat(sm.FinBalance, 'f', -1, 64) }</td>
 				<td>{ sm.Email }</td>
 				<td><a href={ templ.URL(fmt.Sprintf("/sub-meter/%s/overview", sm.ID.String())) }>Detail</a></td>

@@ -13,10 +13,11 @@ templ MmSmCreate(upper MmUpperTmpl, form MmSmForm) {
 			name="meter-identification"
 			id="meter-identification"
 			maxlength="64"
+			required
 			value={ form.MeterIdentification }
 		/>
-		if form.MeterIdentification != "" {
-			<label class="error" for="username">{ form.MeterIdentification }</label>
+		if form.MeterIdentificationErr != "" {
+			<label class="error" for="meter-identification">{ form.MeterIdentificationErr }</label>
 		}
 		<label for="fin-balance">Financial Balance</label>
 		<input

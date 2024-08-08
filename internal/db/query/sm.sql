@@ -29,9 +29,17 @@ ORDER BY sm.created_ts;
 
 -- name: CreateSm :one
 INSERT INTO sm (
-	id, fk_mm, meter_id, fin_balance, fk_user
+	id,
+	fk_mm,
+	meter_id,
+	fin_balance,
+	fk_user
 ) VALUES (
-	$1, $2, $3, $4, $5
+	sqlc.arg(id),
+	sqlc.arg(fk_mm),
+	TRIM(sqlc.arg(meter_id)),
+	sqlc.arg(fin_balance),
+	sqlc.arg(fk_user)
 )
 RETURNING *;
 
