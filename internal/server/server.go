@@ -20,13 +20,11 @@ import (
 	"github.com/svoboond/spinus/internal/conf"
 	"github.com/svoboond/spinus/internal/db"
 	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
-	"github.com/svoboond/spinus/internal/tmpl"
 	"github.com/svoboond/spinus/ui"
 )
 
 type Server struct {
 	server         *http.Server
-	templates      tmpl.Template
 	postgresClient *pgxpool.Pool
 	queries        *spinusdb.Queries
 	redisClient    *redis.Client
@@ -34,14 +32,6 @@ type Server struct {
 }
 
 func New(config *conf.Conf) (*Server, error) {
-	slog.Debug("parsing templates...")
-	var err error
-	templates, err := tmpl.NewTemplateRenderer(
-		ui.EmbeddedContentHTML, "html/*.html", "html/**/*.html")
-	if err != nil {
-		return nil, fmt.Errorf("could not create templates: %w", err)
-	}
-
 	slog.Debug("connecting to postgres...")
 	postgresUrl := url.URL{
 		Scheme: "postgres",
@@ -85,7 +75,6 @@ func New(config *conf.Conf) (*Server, error) {
 
 	app := &Server{
 		server:         server,
-		templates:      templates,
 		postgresClient: postgresClient,
 		queries:        dbQueries,
 		redisClient:    redisClient,
