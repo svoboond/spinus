@@ -1,0 +1,41 @@
+package ui
+
+import (
+	spinusdb "github.com/svoboond/spinus/internal/db/sqlc"
+	"strconv"
+)
+
+templ MmBillPeriodList(upper MmBillUpperTmpl, mmBillPeriods []spinusdb.MmBillPeriod) {
+	@MmBillUpper(upper)
+	<h1>Billing Periods</h1>
+	<table>
+		<tr>
+			<th>Begin Date</th>
+			<th>End Date</th>
+			<th>Begin Reading Value</th>
+			<th>End Reading Value</th>
+			<th>Energy Consumption</th>
+			<th>Consumed Energy Price</th>
+			<th>Service Price</th>
+			<th>Advance Price</th>
+			<th>Total Price</th>
+		</tr>
+		for _, mmBillPeriod := range mmBillPeriods {
+			<tr>
+				<td><input type="date" disabled value={ mmBillPeriod.BeginDate.Time.Format("2006-01-02") }/></td>
+				<td><input type="date" disabled value={ mmBillPeriod.EndDate.Time.Format("2006-01-02") }/></td>
+				<td>{ strconv.FormatFloat(mmBillPeriod.BeginRdgVal, 'f', -1, 64) }</td>
+				<td>{ strconv.FormatFloat(mmBillPeriod.EndRdgVal, 'f', -1, 64) }</td>
+				<td>{ strconv.FormatFloat(mmBillPeriod.EnergyConsum, 'f', -1, 64) }</td>
+				<td>{ strconv.FormatFloat(mmBillPeriod.ConsumEnergyPrice, 'f', -1, 64) }</td>
+				if mmBillPeriod.ServicePrice.Valid {
+					<td>{ strconv.FormatFloat(mmBillPeriod.ServicePrice.Float64, 'f', -1, 64) }</td>
+				} else {
+					<td></td>
+				}
+				<td>{ strconv.FormatFloat(mmBillPeriod.AdvancePrice, 'f', -1, 64) }</td>
+				<td>{ strconv.FormatFloat(mmBillPeriod.TotalPrice, 'f', -1, 64) }</td>
+			</tr>
+		}
+	</table>
+}

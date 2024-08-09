@@ -695,8 +695,6 @@ func (s *Server) HandleGetMmBillSmList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmBillPeriodList"
-
 	ctx := r.Context()
 	mmBill, ok := GetMmBill(ctx)
 	if !ok {
@@ -711,21 +709,14 @@ func (s *Server) HandleGetMmBillPeriodList(w http.ResponseWriter, r *http.Reques
 		s.HandleInternalServerError(w, r)
 		return
 	}
-	s.legacyRenderTemplate(
-		w, r, tmplName,
-		MmBillPeriodListTmpl{
-			MmBillPeriods: mmBillPeriods,
-			Upper: MmBillUpperTmpl{
-				MmUpperTmpl: MmUpperTmpl{MmID: mmBill.FkMm},
-				MmBillID:    mmBillID,
-			},
-		},
+	s.renderTemplate(
+		w,
+		r,
+		ui.MmBillPeriodList(ui.MmBillUpperTmpl{MmBillID: mmBill.ID}, mmBillPeriods),
 	)
 }
 
 func (s *Server) HandleGetMmBillCreate(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmBillCreate"
-
 	ctx := r.Context()
 	mm, ok := GetMm(ctx)
 	if !ok {
@@ -733,13 +724,16 @@ func (s *Server) HandleGetMmBillCreate(w http.ResponseWriter, r *http.Request) {
 		s.HandleInternalServerError(w, r)
 		return
 	}
-	s.legacyRenderTemplate(
-		w, r,
-		tmplName,
-		MmBillCreateTmpl{
-			MmBillForm: NewMmBillForm(),
-			Upper:      MmUpperTmpl{MmID: mm.ID},
-		},
+	s.renderTemplate(
+		w,
+		r,
+		ui.MmBillCreate(
+			ui.MmUpperTmpl{MmID: mm.ID},
+			ui.NewMmBillForm(),
+			[]*ui.MmBillPeriodForm{{}},
+			ui.SmBillForms{},
+			false,
+		),
 	)
 }
 
