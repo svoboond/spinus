@@ -19,10 +19,6 @@ import (
 	"github.com/svoboond/spinus/internal/ui"
 )
 
-type Upper struct { // TODO: delete
-	UserLoggedIn bool
-}
-
 const internalServerErrorMsg = "500 Internal Server Error"
 
 func (s *Server) HandleForbidden(w http.ResponseWriter, r *http.Request) {
@@ -45,35 +41,6 @@ func (s *Server) HandleNotAllowed(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandleInternalServerError(w http.ResponseWriter, r *http.Request) {
 	s.renderTemplate(w, r, ui.Error(internalServerErrorMsg))
-}
-
-func (s *Server) legacyRenderTemplate(
-	w http.ResponseWriter, r *http.Request, name string, data any) {
-
-	const upperTmplName = "upper"
-
-	var buf bytes.Buffer
-	var userLoggedIn bool
-	if r.Context().Value(userIDKey) != emptyUserIDVal {
-		userLoggedIn = true
-	}
-	upperData := Upper{UserLoggedIn: userLoggedIn}
-	if err := s.templates.Render(&buf, upperTmplName, upperData); err != nil {
-		slog.Error("error rendering template", "template", upperTmplName, "err", err)
-		http.Error(w, internalServerErrorMsg, http.StatusInternalServerError)
-		return
-	}
-	if err := s.templates.Render(&buf, name, data); err != nil {
-		slog.Error("error rendering template", "template", name, "err", err)
-		http.Error(w, internalServerErrorMsg, http.StatusInternalServerError)
-		return
-	}
-	_, err := buf.WriteTo(w)
-	if err != nil {
-		slog.Error("error writing to buffer", "template", name, "err", err)
-		http.Error(w, internalServerErrorMsg, http.StatusInternalServerError)
-		return
-	}
 }
 
 func (s *Server) renderTemplate(
@@ -738,8 +705,6 @@ func (s *Server) HandleGetMmBillCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) {
-	const tmplName = "mmBillCreate"
-
 	ctx := r.Context()
 	mm, ok := GetMm(ctx)
 	if !ok {
@@ -749,26 +714,20 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	}
 
 	mmID := mm.ID
+	upper := ui.MmUpperTmpl{MmID: mmID}
+	var mmBillForm ui.MmBillForm
+	var mmBillPeriodForms []*ui.MmBillPeriodForm
+	var smBillForms ui.SmBillForms
 
-	var mmBillPeriodForms []*MmBillPeriodForm
-	var smBillForms SmBillForms
-	smIDBillForms := make(map[uuid.UUID]*SmBillForm)
-	tmplData := MmBillCreateTmpl{
-		MmBillForm: MmBillForm{
-			MmBillPeriods: mmBillPeriodForms,
-			SmBills:       smBillForms,
-		},
-		Upper: MmUpperTmpl{MmID: mmID},
-	}
 	var formErr bool
 	if err := r.ParseForm(); err != nil {
 		slog.Error("error parsing form", "err", err)
-		tmplData.GeneralErr = "Bad request"
-		if err := s.templates.Render(w, tmplName, tmplData); err != nil {
-			slog.Error("error rendering template", "template", tmplName, "err", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		mmBillForm.GeneralErr = "Bad request"
+		s.renderTemplate(
+			w,
+			r,
+			ui.MmBillCreate(upper, mmBillForm, mmBillPeriodForms, smBillForms, false),
+		)
 		return
 	}
 
@@ -788,11 +747,11 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	mmBill := spinusdb.CreateMmBillParams{FkMm: mmID}
 
 	iMaxDayDiff := r.PostFormValue("max-day-diff")
-	tmplData.MaxDayDiff = iMaxDayDiff
+	mmBillForm.MaxDayDiff = iMaxDayDiff
 	maxDayDiff, err := parseMaxDayDiff(iMaxDayDiff)
 	dayDiff := int(maxDayDiff)
 	if err != nil {
-		tmplData.MaxDayDiffErr = err.Error()
+		mmBillForm.MaxDayDiffErr = err.Error()
 		formErr = true
 	}
 	mmBill.MaxDayDiff = int32(maxDayDiff)
@@ -810,8 +769,12 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 
 	billPeriodsLen := len(iBeginDates)
 	if billPeriodsLen == 0 {
-		tmplData.GeneralErr = "No billing period provided."
-		s.legacyRenderTemplate(w, r, tmplName, tmplData)
+		mmBillForm.GeneralErr = "No billing period provided."
+		s.renderTemplate(
+			w,
+			r,
+			ui.MmBillCreate(upper, mmBillForm, mmBillPeriodForms, smBillForms, false),
+		)
 		return
 	}
 	billPeriodsLastIndex := billPeriodsLen - 1
@@ -820,9 +783,8 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 
 	mmBillPeriodIndex := 0
 	for i := billPeriodsLastIndex; i >= 0; i-- {
-		mmBillPeriodForm := &MmBillPeriodForm{}
-		tmplData.MmBillPeriods = append(
-			tmplData.MmBillPeriods, mmBillPeriodForm)
+		mmBillPeriodForm := &ui.MmBillPeriodForm{}
+		mmBillPeriodForms = append(mmBillPeriodForms, mmBillPeriodForm)
 		iBeginDate := iBeginDates[i]
 		mmBillPeriodForm.BeginDate = iBeginDate
 		iEndDate := iEndDates[i]
@@ -873,7 +835,7 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 					laterIndex := mmBillPeriodIndex - 1
 					previousBeginDate := mmBillPeriods[laterIndex].BeginDate
 					if endTime.AddDate(0, 0, 1) != previousBeginDate.Time {
-						laterBillPeriod := tmplData.MmBillPeriods[laterIndex]
+						laterBillPeriod := mmBillPeriodForms[laterIndex]
 						laterBillPeriod.BeginDateErr =
 							"Begin date must follow previous billing period's end date."
 						formErr = true
@@ -939,21 +901,33 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		}
 		mmBillPeriodIndex++
 	}
-	slices.Reverse(tmplData.MmBillPeriods)
+	slices.Reverse(mmBillPeriodForms)
 	if addBillPeriod {
-		tmplData.MmBillPeriods = append(tmplData.MmBillPeriods, &MmBillPeriodForm{})
-		s.legacyRenderTemplate(w, r, tmplName, tmplData)
+		mmBillPeriodForms = append(mmBillPeriodForms, &ui.MmBillPeriodForm{})
+		s.renderTemplate(
+			w,
+			r,
+			ui.MmBillCreate(upper, mmBillForm, mmBillPeriodForms, smBillForms, false),
+		)
 		return
 	} else if removeBillPeriod {
 		if billPeriodsLen > 1 {
-			tmplData.MmBillPeriods = tmplData.MmBillPeriods[:billPeriodsLastIndex]
+			mmBillPeriodForms = mmBillPeriodForms[:billPeriodsLastIndex]
 		}
-		s.legacyRenderTemplate(w, r, tmplName, tmplData)
+		s.renderTemplate(
+			w,
+			r,
+			ui.MmBillCreate(upper, mmBillForm, mmBillPeriodForms, smBillForms, false),
+		)
 		return
 	}
 
 	if formErr {
-		s.legacyRenderTemplate(w, r, tmplName, tmplData)
+		s.renderTemplate(
+			w,
+			r,
+			ui.MmBillCreate(upper, mmBillForm, mmBillPeriodForms, smBillForms, false),
+		)
 		return
 	}
 
@@ -979,8 +953,12 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 	}
 	rdgLen := len(smRdgs)
 	if rdgLen == 0 {
-		tmplData.GeneralErr = "There is no sub meter."
-		s.legacyRenderTemplate(w, r, tmplName, tmplData)
+		mmBillForm.GeneralErr = "There is no sub meter."
+		s.renderTemplate(
+			w,
+			r,
+			ui.MmBillCreate(upper, mmBillForm, mmBillPeriodForms, smBillForms, false),
+		)
 		return
 	}
 
@@ -1283,6 +1261,8 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 		sms[sm.ID] = sm
 	}
 
+	smIDBillForms := make(map[uuid.UUID]*ui.SmBillForm)
+
 	var smFinBalances []spinusdb.UpdateSmFinBalanceParams
 	smBills := make(map[uuid.UUID]*spinusdb.CreateSmBillParams)
 	smBillPeriods := make(map[int]map[uuid.UUID]*spinusdb.CreateSmBillPeriodParams)
@@ -1402,21 +1382,21 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 				// Calculate all prices for sub meter billing periods and main
 				// meter billing period.
 				smBill, ok := smBills[smID]
-				var smForm *SmBillForm
+				var smForm *ui.SmBillForm
 				if ok {
 					smForm = smIDBillForms[smID]
 				} else {
 					sm := sms[smID]
 					smBill = &spinusdb.CreateSmBillParams{FkSm: smID}
 					smBills[smID] = smBill
-					smForm = &SmBillForm{
+					smForm = &ui.SmBillForm{
 						ID:        smID,
 						CreatedTs: sm.CreatedTs.Time,
 						MeterID:   sm.MeterID,
 						Email:     sm.Email,
 					}
 					smIDBillForms[smID] = smForm
-					tmplData.SmBills = append(tmplData.SmBills, smForm)
+					smBillForms = append(smBillForms, smForm)
 				}
 
 				energyConsum := smBillPeriod.EnergyConsum
@@ -1526,9 +1506,12 @@ func (s *Server) HandlePostMmBillCreate(w http.ResponseWriter, r *http.Request) 
 
 	// Calculate billing, do not create.
 	if r.PostFormValue("calculate-bill") != "" {
-		tmplData.Calculated = true
-		sort.Sort(tmplData.SmBills)
-		s.legacyRenderTemplate(w, r, tmplName, tmplData)
+		sort.Sort(smBillForms)
+		s.renderTemplate(
+			w,
+			r,
+			ui.MmBillCreate(upper, mmBillForm, mmBillPeriodForms, smBillForms, true),
+		)
 		return
 	}
 	mmBillID, err := uuid.NewV7()
