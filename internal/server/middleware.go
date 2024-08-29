@@ -190,3 +190,45 @@ func (s *Server) WithMmBill(h http.Handler) http.Handler {
 		h.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
+type smBillCtx string
+
+const smBillKey smBillCtx = "subMeterBilling"
+
+func GetSmBill(ctx context.Context) (spinusdb.GetSmBillRow, bool) {
+	smBill, ok := ctx.Value(smBillKey).(spinusdb.GetSmBillRow)
+	return smBill, ok
+}
+
+func (s *Server) WithSmBill(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		smBillID, err := GetUUIDUrlParam(r)
+		if err != nil {
+			s.HandleNotFound(w, r)
+			return
+		}
+		ctx := r.Context()
+		userID, ok := GetUserID(ctx)
+		if !ok {
+			slog.Error("error getting user ID", "userID", userID)
+			s.HandleInternalServerError(w, r)
+			return
+		}
+		smBill, err := s.queries.GetSmBill(ctx, smBillID)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				s.HandleNotFound(w, r)
+				return
+			}
+			slog.Error("error executing query", "err", err)
+			s.HandleInternalServerError(w, r)
+			return
+		}
+		if userID != smBill.SubUserID || userID != smBill.MainUserID {
+			s.HandleForbidden(w, r)
+			return
+		}
+		ctx = context.WithValue(ctx, smBillKey, smBill)
+		h.ServeHTTP(w, r.WithContext(ctx))
+	})
+}

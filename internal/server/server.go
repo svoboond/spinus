@@ -186,6 +186,18 @@ func New(config *conf.Conf) (*Server, error) {
 				app.HandleGetSmBillList,
 			)
 		})
+		loggedInRouter.Group(func(smBillDetailRouter chi.Router) {
+			smBillDetailRouter.Use(loggedInRouter.Middlewares()...)
+			smBillDetailRouter.Use(app.WithSmBill)
+			smBillDetailRouter.Get(
+				"/sub-meter-billing/{uuid}/overview",
+				app.HandleGetSmBillOverview,
+			)
+			smBillDetailRouter.Get(
+				"/sub-meter-billing/{uuid}/period/list",
+				app.HandleGetMmBillPeriodList, // TODO
+			)
+		})
 	})
 
 	return app, nil

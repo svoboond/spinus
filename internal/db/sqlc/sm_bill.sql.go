@@ -9,7 +9,61 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const getSmBill = `-- name: GetSmBill :one
+SELECT
+	sm_bill.id, sm_bill.created_ts, sm_bill.fk_sm, sm_bill.fk_mm_bill, sm_bill.energy_consum, sm_bill.consum_energy_price, sm_bill.service_price, sm_bill.advance_price, sm_bill.from_fin_balance, sm_bill.to_pay, sm_bill.status,
+	sm.fk_user AS sub_user_id,
+	mm.fk_user AS main_user_id
+FROM sm_bill
+JOIN sm
+	ON sm_bill.fk_sm = sm.id
+JOIN mm_bill
+	ON sm_bill.fk_mm_bill = mm_bill.id
+JOIN mm
+	ON mm_bill.fk_mm = mm.id
+WHERE sm_bill.id = $1
+LIMIT 1
+`
+
+type GetSmBillRow struct {
+	ID                uuid.UUID
+	CreatedTs         pgtype.Timestamp
+	FkSm              uuid.UUID
+	FkMmBill          uuid.UUID
+	EnergyConsum      float64
+	ConsumEnergyPrice float64
+	ServicePrice      pgtype.Float8
+	AdvancePrice      float64
+	FromFinBalance    float64
+	ToPay             float64
+	Status            SmBillStatus
+	SubUserID         uuid.UUID
+	MainUserID        uuid.UUID
+}
+
+func (q *Queries) GetSmBill(ctx context.Context, id uuid.UUID) (GetSmBillRow, error) {
+	row := q.db.QueryRow(ctx, getSmBill, id)
+	var i GetSmBillRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedTs,
+		&i.FkSm,
+		&i.FkMmBill,
+		&i.EnergyConsum,
+		&i.ConsumEnergyPrice,
+		&i.ServicePrice,
+		&i.AdvancePrice,
+		&i.FromFinBalance,
+		&i.ToPay,
+		&i.Status,
+		&i.SubUserID,
+		&i.MainUserID,
+	)
+	return i, err
+}
 
 const listSmBills = `-- name: ListSmBills :many
 SELECT id, created_ts, fk_sm, fk_mm_bill, energy_consum, consum_energy_price, service_price, advance_price, from_fin_balance, to_pay, status

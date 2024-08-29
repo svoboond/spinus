@@ -17,3 +17,7 @@ type SmUpperTmpl struct {
 type MmBillUpperTmpl struct {
 	MmBillID uuid.UUID
 }
+
+type SmBillUpperTmpl struct {
+	SmBillID uuid.UUID
+}

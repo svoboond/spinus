@@ -1625,3 +1625,16 @@ func (s *Server) HandleGetSmBillList(w http.ResponseWriter, r *http.Request) {
 	}
 	s.renderTemplate(w, r, ui.SmBillList(ui.SmUpperTmpl{SmID: smID}, smBills))
 }
+
+func (s *Server) HandleGetSmBillOverview(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	smBill, ok := GetSmBill(ctx)
+	if !ok {
+		slog.Error("error getting sub meter billing", "subMeterBill", smBill)
+		s.HandleInternalServerError(w, r)
+		return
+	}
+	s.renderTemplate(
+		w, r, ui.SmBillOverview(ui.SmBillUpperTmpl{SmBillID: smBill.ID}, smBill),
+	)
+}
